@@ -1,0 +1,29 @@
+{
+  "name": "preppal",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "mobile": "yarn workspace @preppal/mobile start",
+    "web": "yarn workspace @preppal/web dev",
+    "admin": "yarn workspace @preppal/admin dev",
+    "build:web": "yarn workspace @preppal/web build",
+    "build:admin": "yarn workspace @preppal/admin build",
+    "typecheck": "yarn workspaces run typecheck",
+    "lint": "yarn workspaces run lint",
+    "test": "yarn workspaces run test",
+    "supabase:start": "supabase start",
+    "supabase:migrate": "supabase db push",
+    "supabase:reset": "supabase db reset"
+  },
+  "devDependencies": {
+    "typescript": "^5.3.0"
+  },
+  "engines": {
+    "node": ">=18.0.0",
+    "yarn": ">=1.22.0"
+  }
+}

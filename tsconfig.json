@@ -1,0 +1,25 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "lib": ["ES2020"],
+    "module": "ESNext",
+    "moduleResolution": "bundler",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "isolatedModules": true,
+    "noUncheckedIndexedAccess": true,
+    "exactOptionalPropertyTypes": true,
+    "noImplicitOverride": true,
+    "paths": {
+      "@preppal/types": ["./packages/types/src/index.ts"],
+      "@preppal/utils": ["./packages/utils/src/index.ts"],
+      "@preppal/validation": ["./packages/validation/src/index.ts"],
+      "@preppal/api": ["./packages/api/src/index.ts"],
+      "@preppal/ui": ["./packages/ui/src/index.ts"]
+    }
+  },
+  "exclude": ["node_modules", "dist", "build", ".expo"]
+}

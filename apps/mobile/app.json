@@ -1,0 +1,59 @@
+{
+  "expo": {
+    "name": "PrepPAL",
+    "slug": "preppal",
+    "version": "1.0.0",
+    "orientation": "portrait",
+    "icon": "./assets/icon.png",
+    "userInterfaceStyle": "automatic",
+    "splash": {
+      "image": "./assets/splash.png",
+      "resizeMode": "contain",
+      "backgroundColor": "#0f1117"
+    },
+    "assetBundlePatterns": ["**/*"],
+    "ios": {
+      "supportsTablet": false,
+      "bundleIdentifier": "com.preppal.app",
+      "infoPlist": {
+        "NSCameraUsageDescription": "PrepPAL uses your camera to scan barcodes on food packaging.",
+        "NSUserNotificationsUsageDescription": "PrepPAL sends alerts before your food expires and reminds you to restock."
+      }
+    },
+    "android": {
+      "adaptiveIcon": {
+        "foregroundImage": "./assets/adaptive-icon.png",
+        "backgroundColor": "#0f1117"
+      },
+      "package": "com.preppal.app",
+      "permissions": [
+        "CAMERA",
+        "RECEIVE_BOOT_COMPLETED",
+        "VIBRATE"
+      ]
+    },
+    "plugins": [
+      [
+        "expo-camera",
+        {
+          "cameraPermission": "PrepPAL uses your camera to scan food barcodes."
+        }
+      ],
+      [
+        "expo-notifications",
+        {
+          "icon": "./assets/notification-icon.png",
+          "color": "#22c55e",
+          "sounds": []
+        }
+      ]
+    ],
+    "extra": {
+      "supabaseUrl": "SUPABASE_URL_PLACEHOLDER",
+      "supabaseAnonKey": "SUPABASE_ANON_KEY_PLACEHOLDER",
+      "eas": {
+        "projectId": "your-eas-project-id"
+      }
+    }
+  }
+}
