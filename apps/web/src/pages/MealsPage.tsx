@@ -49,9 +49,9 @@ export function MealsPage() {
       <p style={{ color: 'rgba(148,163,184,0.9)', marginBottom: 24, fontSize: 14 }}>Suggestions based on what you already have.</p>
 
       <button onClick={fetchSuggestions} disabled={loading} style={{
-        background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+        background: 'var(--accent)',
         color: '#0b0f17',
-        border: '1px solid rgba(99,102,241,0.35)',
+        border: '1px solid rgba(245,158,11,0.55)',
         borderRadius: 12,
         padding: '13px 24px', fontSize: 15, fontWeight: 700, cursor: 'pointer',
         marginBottom: 24, opacity: loading ? 0.7 : 1,
@@ -70,7 +70,7 @@ export function MealsPage() {
               <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 12 }}>
                 <h3 style={{ fontSize: 18, fontWeight: 700, color: '#f9fafb', margin: 0 }}>{meal.meal_name}</h3>
                 {meal.missing_ingredients.length > 0 && (
-                  <span style={{ background: 'rgba(245,158,11,0.12)', color: 'rgba(251,191,36,0.95)', fontSize: 11, fontWeight: 750, padding: '4px 10px', borderRadius: 999, border: '1px solid rgba(245,158,11,0.25)' }}>
+                  <span style={{ background: 'rgba(245,158,11,0.12)', color: 'rgba(251,191,36,0.95)', fontSize: 11, fontWeight: 750, padding: '4px 10px', borderRadius: 10, border: '1px solid rgba(245,158,11,0.25)' }}>
                     {meal.missing_ingredients.length} missing
                   </span>
                 )}
@@ -78,7 +78,7 @@ export function MealsPage() {
 
               <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
                 {[
-                  { label: 'kcal', value: meal.calories, color: '#a5b4fc' },
+                  { label: 'kcal', value: meal.calories, color: 'rgba(251,191,36,0.95)' },
                   { label: 'protein', value: `${meal.protein_g}g`, color: '#3b82f6' },
                   { label: 'carbs', value: `${meal.carbs_g}g`, color: '#f59e0b' },
                   { label: 'fat', value: `${meal.fat_g}g`, color: '#f97316' },
@@ -92,7 +92,7 @@ export function MealsPage() {
 
               <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
                 {meal.tags.map((tag: string) => (
-                  <span key={tag} style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.14)', color: 'rgba(226,232,240,0.78)', fontSize: 11, fontWeight: 650, padding: '4px 10px', borderRadius: 999 }}>{tag}</span>
+                  <span key={tag} style={{ background: 'rgba(148,163,184,0.08)', border: '1px solid rgba(148,163,184,0.14)', color: 'rgba(226,232,240,0.78)', fontSize: 11, fontWeight: 650, padding: '4px 10px', borderRadius: 10 }}>{tag}</span>
                 ))}
               </div>
 
@@ -119,9 +119,9 @@ export function MealsPage() {
 
               <button onClick={() => logMeal(meal, idx)} disabled={logged === idx} style={{
                 width: '100%',
-                background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+                background: 'var(--accent)',
                 color: '#0b0f17',
-                border: '1px solid rgba(99,102,241,0.35)',
+                border: '1px solid rgba(245,158,11,0.55)',
                 borderRadius: 10, padding: '12px', fontSize: 15, fontWeight: 700,
                 cursor: 'pointer', marginTop: 4, opacity: logged === idx ? 0.7 : 1,
               }}>

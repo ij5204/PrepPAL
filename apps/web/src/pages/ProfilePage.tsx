@@ -156,8 +156,8 @@ export function ProfilePage() {
 
       {/* AI Recommendation */}
       {goalResult && (
-        <div style={{ background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.24)', borderRadius: 16, padding: 20, marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 750, color: '#e0e7ff', marginBottom: 16 }}>
+        <div style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.22)', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 750, color: 'rgba(251,191,36,0.95)', marginBottom: 16 }}>
             Recommended targets
           </div>
 
@@ -170,7 +170,7 @@ export function ProfilePage() {
             ].map(({ label, value, desc }) => (
               <div key={label} style={{ background: 'rgba(2,6,23,0.55)', borderRadius: 12, padding: 12, border: '1px solid rgba(148,163,184,0.12)' }}>
                 <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 850, color: '#c7d2fe', margin: '4px 0' }}>{value}</div>
+                <div style={{ fontSize: 18, fontWeight: 850, color: 'rgba(251,191,36,0.95)', margin: '4px 0' }}>{value}</div>
                 <div style={{ fontSize: 11, color: '#6b7280' }}>{desc}</div>
               </div>
             ))}
@@ -197,9 +197,9 @@ export function ProfilePage() {
 
           <button onClick={applyRecommendation} style={{
             width: '100%',
-            background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+            background: 'var(--accent)',
             color: '#0b0f17',
-            border: '1px solid rgba(99,102,241,0.35)',
+            border: '1px solid rgba(245,158,11,0.55)',
             borderRadius: 12,
             padding: '11px',
             fontSize: 14,
@@ -224,10 +224,10 @@ export function ProfilePage() {
       <button onClick={handleSave} disabled={saving} style={{
         width: '100%',
         background: saved
-          ? 'rgba(99,102,241,0.75)'
-          : 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+          ? 'rgba(245,158,11,0.80)'
+          : 'var(--accent)',
         color: '#0b0f17',
-        border: '1px solid rgba(99,102,241,0.35)',
+        border: '1px solid rgba(245,158,11,0.55)',
         borderRadius: 14,
         padding: '15px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
         transition: 'background 0.2s',
@@ -240,7 +240,7 @@ export function ProfilePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.14)', padding: 20, marginBottom: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+    <div className="card" style={{ padding: 20, marginBottom: 16 }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {children}
@@ -251,8 +251,8 @@ function Section({ title, children }: { title: string; children: React.ReactNode
 
 function Row({ label, children }: { label: string; children: React.ReactNode }) {
   return (
-    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', gap: 16 }}>
-      <label style={{ fontSize: 14, color: '#9ca3af', fontWeight: 500, minWidth: 180 }}>{label}</label>
+    <div className="formRow">
+      <label className="formLabel">{label}</label>
       <div style={{ flex: 1 }}>{children}</div>
     </div>
   );

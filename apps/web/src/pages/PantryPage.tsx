@@ -5,7 +5,7 @@ import type { PantryItem, Unit, Category } from '@preppal/types';
 
 const UNITS: Unit[] = ['g', 'kg', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
 const CATEGORIES: Category[] = ['produce', 'dairy', 'protein', 'pantry', 'spice', 'other'];
-const EXPIRY_COLORS = { ok: '#a5b4fc', warning: '#f59e0b', danger: '#ef4444', expired: '#6b7280' };
+const EXPIRY_COLORS = { ok: '#22c55e', warning: '#f59e0b', danger: '#ef4444', expired: '#6b7280' };
 type ExpiryStatus = keyof typeof EXPIRY_COLORS;
 
 interface FormState {
@@ -147,7 +147,7 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
             <button onClick={onClose} style={{ flex: 1, background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}>
               Cancel
             </button>
-            <button onClick={handleSave} disabled={saving} style={{ flex: 2, background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))', border: '1px solid rgba(99,102,241,0.35)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 750, color: '#0b0f17', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+            <button onClick={handleSave} disabled={saving} style={{ flex: 2, background: 'var(--accent)', border: '1px solid rgba(245,158,11,0.55)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 750, color: '#0b0f17', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
               {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add to Pantry'}
             </button>
           </div>
@@ -288,7 +288,7 @@ export function PantryPage() {
         </div>
         <button
           onClick={() => { setModalItem(null); setModalOpen(true); }}
-          style={{ background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))', color: '#0b0f17', border: '1px solid rgba(99,102,241,0.35)', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 750, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+          style={{ background: 'var(--accent)', color: '#0b0f17', border: '1px solid rgba(245,158,11,0.55)', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 750, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
         >
           + Add Item
         </button>
@@ -311,7 +311,7 @@ export function PantryPage() {
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              style={{ background: active ? 'rgba(99,102,241,0.95)' : 'rgba(15, 23, 42, 0.72)', color: active ? '#0b0f17' : 'rgba(226,232,240,0.78)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 999, padding: '7px 14px', fontSize: 13, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ background: active ? 'rgba(245, 158, 11, 0.95)' : 'rgba(15, 23, 42, 0.72)', color: active ? '#0b0f17' : 'rgba(226,232,240,0.78)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 10, padding: '7px 14px', fontSize: 13, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {label} {count > 0 && <span style={{ opacity: 0.7, marginLeft: 3 }}>({count})</span>}
             </button>
@@ -362,7 +362,7 @@ export function PantryPage() {
                       </td>
                       <td style={{ padding: '13px 16px', fontSize: 14, color: '#9ca3af' }}>{item.quantity} {item.unit}</td>
                       <td style={{ padding: '13px 16px' }}>
-                        <span style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 999, padding: '4px 10px', fontSize: 12, color: 'rgba(226,232,240,0.75)', fontWeight: 650 }}>
+                        <span style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 10, padding: '4px 10px', fontSize: 12, color: 'rgba(226,232,240,0.75)', fontWeight: 650 }}>
                           {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                         </span>
                       </td>

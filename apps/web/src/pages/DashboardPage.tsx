@@ -69,14 +69,14 @@ export function DashboardPage() {
       </p>
 
       {/* Stat cards */}
-      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
+      <div className="gridAuto" style={{ marginBottom: 24 }}>
         {[
-          { label: 'Calories', value: consumed.calories, goal: profile.daily_calorie_goal, unit: 'kcal', color: isOver ? '#ef4444' : '#a5b4fc' },
+          { label: 'Calories', value: consumed.calories, goal: profile.daily_calorie_goal, unit: 'kcal', color: isOver ? '#ef4444' : 'var(--accent)' },
           { label: 'Protein', value: Math.round(consumed.protein), goal: goals.protein, unit: 'g', color: '#3b82f6' },
           { label: 'Carbs', value: Math.round(consumed.carbs), goal: goals.carbs, unit: 'g', color: '#f59e0b' },
           { label: 'Fat', value: Math.round(consumed.fat), goal: goals.fat, unit: 'g', color: '#f97316' },
         ].map(({ label, value, goal, unit, color }) => (
-          <div key={label} style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 16, border: '1px solid rgba(148,163,184,0.14)', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+          <div key={label} className="card cardPad">
             <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{label}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color }}>{value}</div>
             <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>of {goal} {unit}</div>
@@ -88,18 +88,18 @@ export function DashboardPage() {
       </div>
 
       {/* Calorie bar */}
-      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 20, border: '1px solid rgba(148,163,184,0.14)', marginBottom: 24, boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+      <div className="card cardPad" style={{ marginBottom: 24 }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#f9fafb' }}>Daily Calories</span>
           <span style={{ fontSize: 14, color: '#9ca3af' }}>{consumed.calories} / {profile.daily_calorie_goal} kcal</span>
         </div>
         <div style={{ height: 12, background: 'rgba(148,163,184,0.14)', borderRadius: 999, overflow: 'hidden' }}>
-          <div style={{ height: '100%', borderRadius: 999, background: isOver ? '#ef4444' : '#a5b4fc', width: `${calPct * 100}%`, transition: 'width 0.3s ease' }} />
+          <div style={{ height: '100%', borderRadius: 999, background: isOver ? '#ef4444' : 'var(--accent)', width: `${calPct * 100}%`, transition: 'width 0.3s ease' }} />
         </div>
       </div>
 
       {/* Weekly chart */}
-      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 20, border: '1px solid rgba(148,163,184,0.14)', marginBottom: 24, boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+      <div className="card cardPad" style={{ marginBottom: 24 }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#f9fafb', marginBottom: 16 }}>This Week</div>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={weekData} barSize={28}>
@@ -108,7 +108,7 @@ export function DashboardPage() {
             <Tooltip contentStyle={{ background: 'rgba(2,6,23,0.85)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 12, color: '#f8fafc' }} />
             <Bar dataKey="calories" radius={[6, 6, 0, 0]}>
               {weekData.map((_, i) => (
-                <Cell key={i} fill={i === weekData.length - 1 ? '#a5b4fc' : 'rgba(148,163,184,0.22)'} />
+                <Cell key={i} fill={i === weekData.length - 1 ? 'var(--accent)' : 'rgba(148,163,184,0.22)'} />
               ))}
             </Bar>
           </BarChart>
@@ -116,7 +116,7 @@ export function DashboardPage() {
       </div>
 
       {/* Today's meals */}
-      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 20, border: '1px solid rgba(148,163,184,0.14)', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+      <div className="card cardPad">
         <div style={{ fontSize: 14, fontWeight: 700, color: '#f9fafb', marginBottom: 12 }}>Today's Meals</div>
         {todayLogs.length === 0
           ? <p style={{ color: '#6b7280', fontSize: 14 }}>No meals logged yet today.</p>
@@ -128,7 +128,7 @@ export function DashboardPage() {
                   {new Date(m.eaten_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                 </div>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 750, color: '#a5b4fc' }}>{m.calories} kcal</div>
+              <div style={{ fontSize: 14, fontWeight: 750, color: 'var(--accent)' }}>{m.calories} kcal</div>
             </div>
           ))}
       </div>
