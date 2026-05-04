@@ -95,8 +95,8 @@ export function ProfilePage() {
 
   return (
     <div style={{ maxWidth: 680 }}>
-      <h1 style={{ fontSize: 26, fontWeight: 800, color: '#f9fafb', marginBottom: 4 }}>Profile</h1>
-      <p style={{ color: '#9ca3af', marginBottom: 32, fontSize: 14 }}>Your personal details and goals</p>
+      <h1 className="pageTitle">Profile</h1>
+      <p className="pageSubtitle" style={{ marginBottom: 24 }}>Your personal details and goals</p>
 
       {/* Personal Info */}
       <Section title="Personal Info">
@@ -156,8 +156,8 @@ export function ProfilePage() {
 
       {/* AI Recommendation */}
       {goalResult && (
-        <div style={{ background: 'rgba(245,158,11,0.10)', border: '1px solid rgba(245,158,11,0.22)', borderRadius: 16, padding: 20, marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 750, color: 'rgba(251,191,36,0.95)', marginBottom: 16 }}>
+        <div className="card" style={{ padding: 20, marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 750, color: 'var(--text-primary)', marginBottom: 16 }}>
             Recommended targets
           </div>
 
@@ -168,10 +168,10 @@ export function ProfilePage() {
               { label: 'Target calories', value: `${goalResult.recommendedCalories} kcal`, desc: 'To hit your goal' },
               { label: 'Pace', value: formatWeightChange(goalResult.weeklyChange, form.weight_unit), desc: `~${goalResult.weeksToGoal} weeks to goal` },
             ].map(({ label, value, desc }) => (
-              <div key={label} style={{ background: 'rgba(2,6,23,0.55)', borderRadius: 12, padding: 12, border: '1px solid rgba(148,163,184,0.12)' }}>
-                <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 850, color: 'rgba(251,191,36,0.95)', margin: '4px 0' }}>{value}</div>
-                <div style={{ fontSize: 11, color: '#6b7280' }}>{desc}</div>
+              <div key={label} style={{ background: 'var(--surface-2)', borderRadius: 12, padding: 12, border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                <div style={{ fontSize: 18, fontWeight: 850, color: 'var(--text-primary)', margin: '4px 0' }}>{value}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>
               </div>
             ))}
           </div>
@@ -182,15 +182,15 @@ export function ProfilePage() {
               { label: 'Carbs', value: `${goalResult.carbs_g}g`, color: '#f59e0b' },
               { label: 'Fat', value: `${goalResult.fat_g}g`, color: '#f97316' },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ flex: 1, background: 'rgba(2,6,23,0.55)', borderRadius: 12, padding: 10, textAlign: 'center', border: '1px solid rgba(148,163,184,0.12)' }}>
+              <div key={label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 12, padding: 10, textAlign: 'center', border: '1px solid var(--border)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color }}>{value}</div>
-                <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{label}</div>
+                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
               </div>
             ))}
           </div>
 
           {goalResult.isAggressive && (
-            <div style={{ background: 'rgba(245,158,11,0.10)', borderRadius: 12, padding: 10, marginBottom: 10, fontSize: 13, color: 'rgba(251,191,36,0.95)', border: '1px solid rgba(245,158,11,0.22)' }}>
+            <div style={{ background: 'rgba(245,158,11,0.10)', borderRadius: 12, padding: 10, marginBottom: 10, fontSize: 13, color: 'rgba(180,83,9,0.92)', border: '1px solid rgba(245,158,11,0.22)' }}>
               Your timeline is aggressive. Consider extending your goal date for a safer pace.
             </div>
           )}
@@ -198,12 +198,12 @@ export function ProfilePage() {
           <button onClick={applyRecommendation} style={{
             width: '100%',
             background: 'var(--accent)',
-            color: '#0b0f17',
-            border: '1px solid rgba(245,158,11,0.55)',
+            color: 'var(--accent-text)',
+            border: '1px solid var(--accent-border-strong)',
             borderRadius: 12,
             padding: '11px',
             fontSize: 14,
-            fontWeight: 700, cursor: 'pointer',
+            fontWeight: 750, cursor: 'pointer',
           }}>
             Apply these targets to my account
           </button>
@@ -221,18 +221,13 @@ export function ProfilePage() {
       </Section>
 
       {/* Save */}
-      <button onClick={handleSave} disabled={saving} style={{
-        width: '100%',
-        background: saved
-          ? 'rgba(245,158,11,0.80)'
-          : 'var(--accent)',
-        color: '#0b0f17',
-        border: '1px solid rgba(245,158,11,0.55)',
-        borderRadius: 14,
-        padding: '15px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
-        transition: 'background 0.2s',
-      }}>
-        {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
+      <button
+        onClick={handleSave}
+        disabled={saving}
+        className="btn btnPrimary"
+        style={{ width: '100%', padding: '15px', fontSize: 16, fontWeight: 750, borderRadius: 14 }}
+      >
+        {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
       </button>
     </div>
   );
@@ -263,7 +258,7 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
 }) {
   return (
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ width: '100%', background: 'rgba(2,6,23,0.55)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: '#f8fafc', outline: 'none' }} />
+      style={{ width: '100%', background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none' }} />
   );
 }
 
@@ -273,7 +268,7 @@ function Select({ value, onChange, options }: {
 }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'rgba(2,6,23,0.55)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: '#f8fafc', outline: 'none', cursor: 'pointer' }}>
+      style={{ width: '100%', background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );

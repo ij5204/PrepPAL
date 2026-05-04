@@ -18,10 +18,16 @@ function RequireAuth({ children }: { children: React.ReactNode }) {
 
 function LoadingScreen() {
   return (
-    <div className="h-screen flex items-center justify-center bg-[#0f1117]">
-      <div className="flex flex-col items-center gap-4">
-        <div className="w-10 h-10 border-2 border-[#22c55e] border-t-transparent rounded-full animate-spin" />
-        <span className="text-[#6b7280] text-sm">Loading PrepPAL…</span>
+    <div style={{ height: '100vh', display: 'flex', alignItems: 'center', justifyContent: 'center', background: 'var(--bg)' }}>
+      <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', gap: 12 }}>
+        <div style={{
+          width: 40,
+          height: 40,
+          borderRadius: 999,
+          border: '2px solid var(--border-2)',
+          borderTopColor: 'transparent',
+        }} className="animate-spin" />
+        <span style={{ color: 'var(--text-muted)', fontSize: 13 }}>Loading PrepPAL…</span>
       </div>
     </div>
   );

@@ -3,40 +3,76 @@
 @tailwind utilities;
 
 :root {
-  --bg: #0b0f17;
-  --bg-elev: rgba(15, 23, 42, 0.72);
-  --bg-elev-2: rgba(2, 6, 23, 0.55);
-  --bg-hover: rgba(2, 6, 23, 0.42);
+  /* Notion iOS-like tokens */
+  --bg: #f2f2f7;                 /* iOS grouped background */
+  --surface: #ffffff;            /* card */
+  --surface-2: #f7f7fa;          /* hover */
+  --surface-solid: #ffffff;
 
-  --border: rgba(148, 163, 184, 0.14);
-  --border-2: rgba(148, 163, 184, 0.18);
-  --border-focus: rgba(165, 180, 252, 0.55);
+  --border: rgba(60, 60, 67, 0.12);     /* iOS separator */
+  --border-2: rgba(60, 60, 67, 0.18);
+  --border-focus: rgba(60, 60, 67, 0.30);
 
-  --text-primary: #f8fafc;
-  --text-secondary: rgba(148, 163, 184, 0.9);
-  --text-muted: rgba(148, 163, 184, 0.72);
+  --text-primary: rgba(0, 0, 0, 0.92);
+  --text-secondary: rgba(60, 60, 67, 0.78);
+  --text-muted: rgba(60, 60, 67, 0.55);
 
-  /* Warm charcoal + amber accent (no blues) */
-  --accent: #f59e0b; /* amber */
-  --accent-2: #f97316; /* orange */
-  --accent-soft: rgba(245, 158, 11, 0.14);
-  --accent-border: rgba(245, 158, 11, 0.26);
-  --accent-text: #fffbeb;
+  /* Primary button: ink */
+  --accent: #111113;
+  --accent-border-strong: rgba(17, 17, 19, 0.25);
+  --accent-text: rgba(255, 255, 255, 0.96);
+
+  /* Controls */
+  --field-bg: rgba(0, 0, 0, 0.04);
+  --field-border: rgba(60, 60, 67, 0.16);
+  --field-placeholder: rgba(60, 60, 67, 0.45);
 
   --danger: #ef4444;
   --amber: #f59e0b;
-  --blue: #3b82f6;
   --orange: #f97316;
 
-  --shadow: 0 10px 30px rgba(0, 0, 0, 0.30);
-  --shadow-lg: 0 22px 60px rgba(0, 0, 0, 0.55);
+  --shadow: 0 8px 22px rgba(17, 17, 19, 0.10);
+  --shadow-lg: 0 14px 34px rgba(17, 17, 19, 0.14);
 
-  --shadow: 0 6px 16px rgba(0, 0, 0, 0.28);
-  --shadow-lg: 0 14px 36px rgba(0, 0, 0, 0.42);
-
-  --radius: 12px;
-  --radius-sm: 10px;
+  --radius: 14px;
+  --radius-sm: 12px;
   --container: 1120px;
+}
+
+@media (prefers-color-scheme: light) {
+  :root:not([data-theme]) {
+    /* same as default (light) */
+  }
+}
+
+:root[data-theme='light'] {
+  /* same as default (light) */
+}
+
+:root[data-theme='dark'] {
+  --bg: #000000;
+  --surface: #1c1c1e;
+  --surface-2: #2c2c2e;
+  --surface-solid: #1c1c1e;
+
+  --border: rgba(84, 84, 88, 0.36);
+  --border-2: rgba(84, 84, 88, 0.44);
+  --border-focus: rgba(142, 142, 147, 0.55);
+
+  --text-primary: rgba(255, 255, 255, 0.92);
+  --text-secondary: rgba(235, 235, 245, 0.72);
+  --text-muted: rgba(235, 235, 245, 0.55);
+
+  --accent: #ffffff;
+  --accent-border-strong: rgba(255, 255, 255, 0.22);
+  --accent-text: rgba(0, 0, 0, 0.92);
+
+  --field-bg: rgba(255, 255, 255, 0.10);
+  --field-border: rgba(84, 84, 88, 0.55);
+  --field-placeholder: rgba(235, 235, 245, 0.45);
+
+  --shadow: 0 10px 26px rgba(0, 0, 0, 0.55);
+  --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.60);
 }
 
 * {
@@ -52,11 +88,30 @@ html, body, #root {
 body {
   background: var(--bg);
   color: var(--text-primary);
-  font-family: 'Inter', system-ui, -apple-system, sans-serif;
+  font-family: ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display", "Segoe UI", sans-serif;
   -webkit-font-smoothing: antialiased;
+  font-size: 15px;
+  line-height: 1.4;
 }
 
-/* Keep background clean (avoid “cartoon” glow/grain) */
+/* Notion iOS-ish typography helpers */
+.pageTitle {
+  font-size: 28px;
+  font-weight: 800;
+  letter-spacing: -0.01em;
+  color: var(--text-primary);
+  margin: 0 0 4px;
+}
+.pageSubtitle {
+  font-size: 14px;
+  color: var(--text-muted);
+  margin: 0 0 18px;
+}
+.muted {
+  color: var(--text-muted);
+}
+
+/* Keep background clean (Notion iOS-ish) */
 
 /* Scrollbar styling */
 ::-webkit-scrollbar {
@@ -67,17 +122,47 @@ body {
   background: var(--bg);
 }
 ::-webkit-scrollbar-thumb {
-  background: #374151;
+  background: var(--border-2);
   border-radius: 3px;
 }
 ::-webkit-scrollbar-thumb:hover {
-  background: #4b5563;
+  background: var(--border-focus);
+}
+
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb {
+  background: rgba(84, 84, 88, 0.65);
+}
+:root[data-theme='dark'] ::-webkit-scrollbar-thumb:hover {
+  background: rgba(142, 142, 147, 0.55);
 }
 
 /* Focus ring */
 :focus-visible {
-  outline: 2px solid var(--accent);
+  outline: 2px solid rgba(60, 60, 67, 0.35);
   outline-offset: 2px;
+}
+
+/* Global interactive feel */
+a, button, input, select, textarea {
+  transition: background-color 140ms ease, border-color 140ms ease, color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+button:active {
+  transform: translateY(0.5px);
+}
+
+input:focus, select:focus, textarea:focus {
+  box-shadow: 0 0 0 3px rgba(0,0,0,0.08);
+  border-color: var(--accent-border-strong);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  * {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }
 
 /* Animations */
@@ -103,7 +188,7 @@ body {
   transition: border-color 0.15s ease, transform 0.15s ease;
 }
 .card-hover:hover {
-  border-color: #374151;
+  border-color: var(--border-2);
   transform: translateY(-1px);
 }
 
@@ -118,7 +203,7 @@ body {
 
 .appSidebar {
   width: 264px;
-  background: linear-gradient(180deg, #0f172a 0%, #0b1220 100%);
+  background: var(--surface);
   border-right: 1px solid var(--border);
   display: flex;
   flex-direction: column;
@@ -137,45 +222,7 @@ body {
 }
 
 .brandLogo {
-  position: relative;
-  width: 34px;
-  height: 34px;
-  border-radius: 10px;
-  background: rgba(2, 6, 23, 0.35);
-  border: 1px solid var(--border-2);
-  color: transparent;
-  font-size: 12px;
-  font-weight: 900;
-  letter-spacing: 0.6px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-}
-.brandLogo::before {
-  content: '';
-  position: absolute;
-  left: 9px;
-  top: 15px;
-  width: 16px;
-  height: 9px;
-  border-bottom-left-radius: 10px;
-  border-bottom-right-radius: 10px;
-  border-top-left-radius: 4px;
-  border-top-right-radius: 4px;
-  background: rgba(226, 232, 240, 0.85);
-  box-shadow: none;
-}
-.brandLogo::after {
-  content: '';
-  position: absolute;
-  left: 8px;
-  top: 9px;
-  width: 18px;
-  height: 12px;
-  border: 2px solid rgba(226, 232, 240, 0.78);
-  border-color: rgba(226, 232, 240, 0.78) transparent transparent transparent;
-  border-radius: 999px;
-  opacity: 0.9;
+  display: none;
 }
 
 .appNav {
@@ -193,31 +240,24 @@ body {
   text-decoration: none;
   font-size: 13px;
   font-weight: 650;
-  color: rgba(226, 232, 240, 0.78);
+  color: var(--text-secondary);
   border: 1px solid transparent;
   transition: background 0.15s ease, border-color 0.15s ease, color 0.15s ease;
 }
 
 .navItem:hover {
-  background: rgba(148, 163, 184, 0.07);
-  border-color: rgba(148, 163, 184, 0.14);
+  background: var(--surface-2);
+  border-color: var(--border-2);
 }
 
 .navItemActive {
-  background: var(--accent-soft);
-  border-color: var(--accent-border);
-  color: var(--accent-text);
+  background: rgba(60, 60, 67, 0.08);
+  border-color: rgba(60, 60, 67, 0.12);
+  color: var(--text-primary);
 }
 
 .navDot {
-  width: 6px;
-  height: 6px;
-  border-radius: 999px;
-  background: rgba(148, 163, 184, 0.6);
-}
-.navItemActive .navDot {
-  background: rgba(245,158,11,0.95);
-  box-shadow: 0 0 0 4px rgba(245,158,11,0.10);
+  display: none;
 }
 
 .sidebarFooter {
@@ -236,14 +276,14 @@ body {
   font-weight: 700;
   cursor: pointer;
   border: 1px solid var(--border-2);
-  background: rgba(2, 6, 23, 0.35);
-  color: rgba(226, 232, 240, 0.78);
+  background: var(--surface);
+  color: var(--text-secondary);
   transition: transform 0.12s ease, background 0.12s ease, border-color 0.12s ease;
 }
 
 .btn:hover {
-  background: rgba(2, 6, 23, 0.48);
-  border-color: rgba(148, 163, 184, 0.24);
+  background: var(--surface-2);
+  border-color: var(--border-2);
   transform: none;
 }
 
@@ -252,22 +292,39 @@ body {
 }
 
 .btnPrimary {
-  background: rgba(245, 158, 11, 0.95);
-  border-color: rgba(245, 158, 11, 0.55);
-  color: #0b0f17;
+  position: relative;
+  overflow: hidden;
+  background: var(--accent);
+  border-color: var(--accent-border-strong);
+  color: var(--accent-text);
 }
 
 .btnPrimary:hover {
-  background: rgba(245, 158, 11, 1);
-  border-color: rgba(245, 158, 11, 0.7);
+  background: var(--accent);
 }
+
+.btn:disabled,
+.btnPrimary:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+.btnPrimary:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.btnPrimary:active:not(:disabled) {
+  transform: scale(0.99);
+}
+
+.btnPrimary::after { display: none; }
+.btnPrimary:hover::after { display: none; }
 
 .appMain {
   flex: 1;
   overflow: auto;
   padding: 28px 32px;
-  background:
-    var(--bg);
+  background: transparent;
 }
 
 .topbar {
@@ -277,7 +334,7 @@ body {
   z-index: 20;
   padding: 12px 12px;
   margin: -28px -32px 18px;
-  background: rgba(11, 15, 23, 0.72);
+  background: var(--surface);
   border-bottom: 1px solid var(--border);
   backdrop-filter: blur(10px);
 }
@@ -298,7 +355,7 @@ body {
 
 .card {
   position: relative;
-  background: var(--bg-elev);
+  background: var(--surface);
   border: 1px solid var(--border);
   border-radius: var(--radius);
   box-shadow: var(--shadow);
@@ -327,9 +384,413 @@ body {
 
 .formLabel {
   font-size: 14px;
-  color: rgba(226, 232, 240, 0.72);
+  color: var(--text-secondary);
   font-weight: 550;
   min-width: 180px;
+}
+
+/* ── iOS / Notion-ish controls (grouped surfaces) ───────────────────────── */
+
+.iosSearch {
+  width: 100%;
+  margin-top: 20px;
+  margin-bottom: 14px;
+  padding: 12px 16px;
+  font-size: 15px;
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--field-border);
+  background: var(--surface);
+  color: var(--text-primary);
+  outline: none;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(17, 17, 19, 0.04);
+}
+
+.iosSearch::placeholder {
+  color: var(--field-placeholder);
+}
+
+.iosSearch:focus {
+  border-color: var(--border-focus);
+  box-shadow: 0 0 0 3px rgba(60, 60, 67, 0.14);
+}
+
+.sectionEyebrow {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.sectionEyebrowHint {
+  font-size: 12px;
+  color: var(--text-muted);
+}
+
+.suggestionChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  padding: 8px 10px;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+  border: 1px solid var(--border);
+}
+
+.suggestionChipLabel {
+  font-size: 13px;
+  font-weight: 650;
+  color: var(--text-primary);
+}
+
+.chipIconBtn {
+  width: 28px;
+  height: 28px;
+  border-radius: 8px;
+  border: 1px solid var(--border-2);
+  background: var(--surface-2);
+  color: var(--text-primary);
+  cursor: pointer;
+  font-size: 17px;
+  line-height: 1;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.chipIconBtn:hover {
+  background: var(--field-bg);
+  border-color: var(--border-focus);
+}
+
+.filterPills {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 20px;
+  flex-wrap: wrap;
+}
+
+.filterPill {
+  border-radius: 999px;
+  padding: 7px 14px;
+  font-size: 13px;
+  font-weight: 650;
+  cursor: pointer;
+  white-space: nowrap;
+  border: 1px solid var(--border-2);
+  background: var(--surface);
+  color: var(--text-secondary);
+}
+
+.filterPill:hover {
+  background: var(--surface-2);
+}
+
+.filterPillActive {
+  background: var(--accent);
+  border-color: var(--accent-border-strong);
+  color: var(--accent-text);
+}
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  backdrop-filter: blur(4px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 16px;
+}
+
+.modalPanel {
+  background: var(--surface);
+  border-radius: var(--radius);
+  border: 1px solid var(--border-2);
+  width: 100%;
+  max-width: 480px;
+  padding: 28px;
+  box-shadow: var(--shadow-lg);
+}
+
+.modalPanelSm {
+  max-width: 360px;
+  padding: 24px;
+}
+
+.modalHead {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+}
+
+.modalTitle {
+  margin: 0;
+  font-size: 20px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.modalClose {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  padding: 4;
+}
+
+.modalClose:hover {
+  color: var(--text-secondary);
+}
+
+.calloutDanger {
+  margin-bottom: 14px;
+  background: rgba(239, 68, 68, 0.1);
+  border: 1px solid rgba(239, 68, 68, 0.26);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  color: #b42318;
+}
+
+:root[data-theme='dark'] .calloutDanger {
+  color: #fecaca;
+}
+
+.calloutWarn {
+  margin-bottom: 16px;
+  background: rgba(245, 158, 11, 0.1);
+  border-radius: var(--radius-sm);
+  padding: 12px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+  font-size: 13px;
+  color: #b45309;
+}
+
+:root[data-theme='dark'] .calloutWarn {
+  color: #fde68a;
+}
+
+.iosTable {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.iosTable thead tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.iosTable th {
+  padding: 12px 16px;
+  text-align: left;
+  font-size: 11px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.iosTable th:last-child {
+  text-align: right;
+}
+
+.iosTable tbody tr {
+  border-bottom: 1px solid var(--border);
+}
+
+.iosTable tbody tr:last-child {
+  border-bottom: none;
+}
+
+.iosTable tbody tr:hover {
+  background: var(--surface-2);
+}
+
+.iosTable td {
+  padding: 13px 16px;
+}
+
+.pillMuted {
+  display: inline-block;
+  background: var(--field-bg);
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-secondary);
+}
+
+.btnGhostSm {
+  background: transparent;
+  border: 1px solid var(--border-2);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.btnGhostSm:hover {
+  background: var(--surface-2);
+}
+
+.btnDangerSm {
+  background: transparent;
+  border: 1px solid rgba(239, 68, 68, 0.35);
+  border-radius: 10px;
+  padding: 7px 12px;
+  font-size: 12px;
+  font-weight: 650;
+  color: var(--danger);
+  cursor: pointer;
+}
+
+.btnDangerSm:hover {
+  background: rgba(239, 68, 68, 0.08);
+}
+
+.stackSm {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.flexActions {
+  display: flex;
+  gap: 10px;
+  margin-top: 4px;
+}
+
+.mealIdeasStack {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.mealMacroGrid {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.mealMacroPill {
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  text-align: center;
+  flex: 1;
+  border: 1px solid var(--border);
+  background: var(--surface-2);
+}
+
+.mealMacroValue {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--text-primary);
+}
+
+.mealMacroValueAccent {
+  font-size: 15px;
+  font-weight: 800;
+  color: var(--amber);
+}
+
+.mealMacroLabel {
+  font-size: 10px;
+  margin-top: 2px;
+  color: var(--text-muted);
+}
+
+.mealTag {
+  font-size: 11px;
+  font-weight: 650;
+  padding: 4px 10px;
+  border-radius: 999px;
+  border: 1px solid var(--border);
+  background: var(--field-bg);
+  color: var(--text-secondary);
+}
+
+.badgeWarn {
+  display: inline-block;
+  background: rgba(245, 158, 11, 0.12);
+  color: var(--amber);
+  font-size: 11px;
+  font-weight: 750;
+  padding: 4px 10px;
+  border-radius: 10px;
+  border: 1px solid rgba(245, 158, 11, 0.28);
+}
+
+.mealInstructionsToggle {
+  background: none;
+  border: none;
+  color: var(--text-muted);
+  font-size: 13px;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 12px;
+}
+
+.mealInstructionsToggle:hover {
+  color: var(--text-secondary);
+}
+
+.mealDivider {
+  border-top: 1px solid var(--border);
+  padding-top: 12px;
+}
+
+.mealInstructionsBody {
+  font-size: 14px;
+  color: var(--text-secondary);
+  line-height: 1.6;
+  margin-bottom: 12px;
+}
+
+.mealListEyebrow {
+  font-size: 12px;
+  font-weight: 700;
+  color: var(--text-muted);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin-bottom: 6px;
+}
+
+.mealListLine {
+  font-size: 13px;
+  color: var(--text-secondary);
+  line-height: 2;
+}
+
+.mealListEyebrowWarn {
+  font-size: 12px;
+  font-weight: 750;
+  color: var(--amber);
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  margin: 10px 0 6px;
+}
+
+.toastFloating {
+  position: fixed;
+  right: 18px;
+  bottom: 18px;
+  background: var(--surface);
+  border: 1px solid var(--border-2);
+  color: var(--text-primary);
+  border-radius: var(--radius-sm);
+  padding: 10px 12px;
+  font-size: 13px;
+  box-shadow: var(--shadow-lg);
+  max-width: 360px;
 }
 
 .sidebarOverlay {

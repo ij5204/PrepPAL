@@ -42,29 +42,29 @@ export function GroceryPage() {
   return (
     <div>
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4 }}>
-        <h1 style={{ fontSize: 26, fontWeight: 800, color: '#f9fafb' }}>Grocery List</h1>
+        <h1 className="pageTitle" style={{ marginBottom: 0 }}>Grocery List</h1>
         {checked.length > 0 && (
-          <button onClick={clearCompleted} style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.18)', color: 'rgba(248,113,113,0.95)', borderRadius: 10, padding: '8px 12px', fontSize: 13, fontWeight: 650, cursor: 'pointer' }}>
+          <button onClick={clearCompleted} className="btn" style={{ color: '#ef4444' }}>
             Clear {checked.length} done
           </button>
         )}
       </div>
-      <p style={{ color: '#9ca3af', marginBottom: 24, fontSize: 14 }}>{unchecked.length} items to buy</p>
+      <p className="pageSubtitle" style={{ marginBottom: 18 }}>{unchecked.length} items to buy</p>
 
       <div style={{ display: 'flex', gap: 8, marginBottom: 24 }}>
         <input placeholder="Add an item…" value={newItem} onChange={e => setNewItem(e.target.value)}
           onKeyDown={e => e.key === 'Enter' && addItem()}
-          style={{ flex: 1, background: 'rgba(15, 23, 42, 0.72)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '12px 16px', fontSize: 15, color: '#f8fafc', outline: 'none' }} />
-        <button onClick={addItem} style={{ background: 'var(--accent)', color: '#0b0f17', border: '1px solid rgba(245,158,11,0.55)', borderRadius: 12, padding: '12px 20px', fontSize: 15, fontWeight: 750, cursor: 'pointer' }}>Add</button>
+          style={{ flex: 1, background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '12px 16px', fontSize: 15, color: 'var(--text-primary)', outline: 'none' }} />
+        <button onClick={addItem} className="btn btnPrimary" style={{ padding: '12px 20px', fontSize: 15, fontWeight: 750 }}>Add</button>
       </div>
 
-      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.14)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+      <div className="card" style={{ overflow: 'hidden' }}>
         {items.length === 0
-          ? <div style={{ padding: 32, textAlign: 'center', color: '#6b7280' }}>Your list is empty</div>
+          ? <div style={{ padding: 32, textAlign: 'center', color: 'var(--text-muted)' }}>Your list is empty</div>
           : [...unchecked, ...checked].map(item => (
             <div key={item.id} onClick={() => toggle(item)} style={{
               display: 'flex', alignItems: 'center', gap: 12, padding: '14px 16px',
-              borderBottom: '1px solid rgba(148,163,184,0.12)', cursor: 'pointer',
+              borderBottom: '1px solid var(--border)', cursor: 'pointer',
               opacity: item.is_checked ? 0.5 : 1,
             }}>
               <div style={{
@@ -72,11 +72,11 @@ export function GroceryPage() {
                 background: item.is_checked ? 'var(--accent)' : 'transparent',
                 display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0,
               }}>
-                {item.is_checked && <span style={{ color: '#0b0f17', fontSize: 13, fontWeight: 850 }}>✓</span>}
+                {item.is_checked && <span style={{ color: 'var(--accent-text)', fontSize: 13, fontWeight: 850 }}>✓</span>}
               </div>
               <div style={{ flex: 1 }}>
-                <div style={{ fontSize: 14, fontWeight: 600, color: '#f9fafb', textDecoration: item.is_checked ? 'line-through' : 'none' }}>{item.name}</div>
-                {item.quantity && <div style={{ fontSize: 12, color: '#9ca3af', marginTop: 2 }}>{item.quantity} {item.unit}</div>}
+                <div style={{ fontSize: 14, fontWeight: 650, color: 'var(--text-primary)', textDecoration: item.is_checked ? 'line-through' : 'none' }}>{item.name}</div>
+                {item.quantity && <div style={{ fontSize: 12, color: 'var(--text-muted)', marginTop: 2 }}>{item.quantity} {item.unit}</div>}
               </div>
               <span style={{ background: reasonColors[item.reason] + '1f', border: `1px solid ${reasonColors[item.reason]}33`, color: reasonColors[item.reason], fontSize: 11, fontWeight: 750, padding: '4px 10px', borderRadius: 10 }}>
                 {item.reason.replace('_', ' ')}

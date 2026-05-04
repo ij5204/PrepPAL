@@ -15,18 +15,18 @@ const EMPTY_FORM: FormState = { name: '', quantity: '', unit: 'pieces', expiry_d
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'rgba(2,6,23,0.55)',
-  border: '1px solid rgba(148,163,184,0.18)',
+  background: 'var(--field-bg)',
+  border: '1px solid var(--field-border)',
   borderRadius: 12,
   padding: '10px 14px',
   fontSize: 14,
-  color: '#f8fafc',
+  color: 'var(--text-primary)',
   outline: 'none',
   boxSizing: 'border-box',
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
-  fontSize: 12, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase',
+  fontSize: 12, fontWeight: 700, color: 'var(--text-muted)', textTransform: 'uppercase',
   letterSpacing: '0.5px', display: 'block', marginBottom: 6,
 };
 
@@ -34,11 +34,12 @@ const labelStyle: React.CSSProperties = {
 
 interface PantryModalProps {
   item: PantryItem | null;
+  preset?: Partial<FormState> | null;
   onClose: () => void;
   onSaved: () => Promise<void>;
 }
 
-function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
+function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
   const isEdit = !!item;
   const [form, setForm] = useState<FormState>(
     item
@@ -47,6 +48,18 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+
+  useEffect(() => {
+    if (item) {
+      setForm({ name: item.name, quantity: String(item.quantity), unit: item.unit, expiry_date: item.expiry_date ?? '', category: item.category, notes: item.notes ?? '' });
+      return;
+    }
+    if (preset) {
+      setForm({ ...EMPTY_FORM, ...preset });
+      return;
+    }
+    setForm(EMPTY_FORM);
+  }, [item, preset]);
 
   const set = (field: keyof FormState) =>
     (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement | HTMLTextAreaElement>) =>
@@ -89,17 +102,14 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
   };
 
   return (
-    <div
-      onClick={e => { if (e.target === e.currentTarget) onClose(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
-    >
-      <div style={{ background: 'rgba(15, 23, 42, 0.86)', borderRadius: 18, border: '1px solid rgba(148,163,184,0.18)', width: '100%', maxWidth: 480, padding: 28, boxShadow: '0 25px 60px rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)' }}>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
-          <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#f9fafb' }}>{isEdit ? 'Edit Item' : 'Add Item'}</h2>
-          <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
+    <div className="modalOverlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
+      <div className="modalPanel" onClick={e => e.stopPropagation()}>
+        <div className="modalHead">
+          <h2 className="modalTitle">{isEdit ? 'Edit Item' : 'Add Item'}</h2>
+          <button type="button" className="modalClose" onClick={onClose} aria-label="Close">×</button>
         </div>
 
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+        <div className="stackSm">
           <div>
             <label style={labelStyle}>Name *</label>
             <input style={inputStyle} placeholder="e.g. Chicken Breast" value={form.name} onChange={set('name')} autoFocus />
@@ -138,16 +148,16 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
           </div>
 
           {error && (
-            <div style={{ background: '#450a0a', border: '1px solid #7f1d1d', borderRadius: 8, padding: '10px 14px', color: '#fca5a5', fontSize: 13 }}>
+            <div className="calloutDanger" style={{ marginBottom: 0 }}>
               {error}
             </div>
           )}
 
-          <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button onClick={onClose} style={{ flex: 1, background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}>
+          <div className="flexActions">
+            <button type="button" onClick={onClose} className="btn" style={{ flex: 1 }}>
               Cancel
             </button>
-            <button onClick={handleSave} disabled={saving} style={{ flex: 2, background: 'var(--accent)', border: '1px solid rgba(245,158,11,0.55)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 750, color: '#0b0f17', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+            <button type="button" onClick={handleSave} disabled={saving} className="btn btnPrimary" style={{ flex: 2 }}>
               {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add to Pantry'}
             </button>
           </div>
@@ -165,16 +175,33 @@ interface DeleteConfirmProps {
 
 function DeleteConfirm({ item, onCancel, onConfirm, deleting }: DeleteConfirmProps) {
   return (
-    <div
-      onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
-      style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: 16 }}
-    >
-      <div style={{ background: 'rgba(15, 23, 42, 0.86)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.18)', width: '100%', maxWidth: 360, padding: 24, boxShadow: '0 25px 60px rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)' }}>
-        <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#f9fafb' }}>Delete "{item.name}"?</h3>
-        <p style={{ margin: '0 0 20px', fontSize: 14, color: '#9ca3af', lineHeight: 1.5 }}>This will remove it from your pantry. This cannot be undone.</p>
+    <div className="modalOverlay" style={{ zIndex: 1001 }} onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
+      <div className="modalPanel modalPanelSm" onClick={e => e.stopPropagation()}>
+        <h3 className="modalTitle" style={{ fontSize: 18 }}>Delete "{item.name}"?</h3>
+        <p style={{ margin: '8px 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
+          This will remove it from your pantry. This cannot be undone.
+        </p>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onCancel} style={{ flex: 1, background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '11px', fontSize: 14, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}>Cancel</button>
-          <button onClick={onConfirm} disabled={deleting} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 10, padding: '11px', fontSize: 14, fontWeight: 700, color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}>
+          <button type="button" onClick={onCancel} className="btn" style={{ flex: 1 }}>
+            Cancel
+          </button>
+          <button
+            type="button"
+            onClick={onConfirm}
+            disabled={deleting}
+            style={{
+              flex: 1,
+              background: 'var(--danger)',
+              border: 'none',
+              borderRadius: 'var(--radius-sm)',
+              padding: '11px',
+              fontSize: 14,
+              fontWeight: 700,
+              color: '#fff',
+              cursor: deleting ? 'not-allowed' : 'pointer',
+              opacity: deleting ? 0.7 : 1,
+            }}
+          >
             {deleting ? 'Deleting…' : 'Delete'}
           </button>
         </div>
@@ -191,6 +218,7 @@ export function PantryPage() {
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<Category | 'all'>('all');
   const [modalItem, setModalItem] = useState<PantryItem | null>(null);
+  const [modalPreset, setModalPreset] = useState<Partial<FormState> | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PantryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
@@ -276,44 +304,98 @@ export function PantryPage() {
     { key: 'other', label: 'Other' },
   ];
 
+  const COMMON_ITEMS: Array<{ name: string; category: Category; unit: Unit }> = [
+    { name: 'Olive oil', category: 'pantry', unit: 'ml' },
+    { name: 'Salt', category: 'spice', unit: 'g' },
+    { name: 'Black pepper', category: 'spice', unit: 'g' },
+    { name: 'Garlic', category: 'produce', unit: 'pieces' },
+    { name: 'Onion', category: 'produce', unit: 'pieces' },
+    { name: 'Rice', category: 'pantry', unit: 'g' },
+    { name: 'Pasta', category: 'pantry', unit: 'g' },
+    { name: 'Eggs', category: 'dairy', unit: 'pieces' },
+    { name: 'Milk', category: 'dairy', unit: 'ml' },
+    { name: 'Butter', category: 'dairy', unit: 'g' },
+    { name: 'Flour', category: 'pantry', unit: 'g' },
+    { name: 'Sugar', category: 'pantry', unit: 'g' },
+    { name: 'Oats', category: 'pantry', unit: 'g' },
+    { name: 'Chicken breast', category: 'protein', unit: 'g' },
+    { name: 'Canned tomatoes', category: 'pantry', unit: 'pieces' },
+  ];
+
+  const existingNames = new Set(items.map(i => i.name.trim().toLowerCase()));
+  const commonSuggestions = COMMON_ITEMS
+    .filter(s => !existingNames.has(s.name.toLowerCase()))
+    .filter(s => activeCategory === 'all' || s.category === activeCategory)
+    .slice(0, 10);
+
   return (
     <div>
       {/* Header */}
       <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
         <div>
-          <h1 style={{ fontSize: 26, fontWeight: 800, color: '#f9fafb', margin: 0 }}>Pantry</h1>
-          <p style={{ color: '#9ca3af', marginTop: 4, marginBottom: 0, fontSize: 14 }}>
+          <h1 className="pageTitle" style={{ margin: 0 }}>Pantry</h1>
+          <p className="pageSubtitle" style={{ marginTop: 4, marginBottom: 0 }}>
             {items.length} item{items.length !== 1 ? 's' : ''} in your kitchen
           </p>
         </div>
-        <button
-          onClick={() => { setModalItem(null); setModalOpen(true); }}
-          style={{ background: 'var(--accent)', color: '#0b0f17', border: '1px solid rgba(245,158,11,0.55)', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 750, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
-        >
-          + Add Item
+        <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="btn btnPrimary">
+          Add item
         </button>
       </div>
 
       {/* Search */}
       <input
+        className="iosSearch"
         placeholder="Search items…"
         value={search}
         onChange={e => setSearch(e.target.value)}
-        style={{ width: '100%', background: 'rgba(15, 23, 42, 0.72)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '12px 16px', fontSize: 15, color: '#f8fafc', marginTop: 20, marginBottom: 14, outline: 'none', boxSizing: 'border-box' }}
+        aria-label="Search pantry items"
       />
 
+      {/* Common suggestions */}
+      {search.trim() === '' && commonSuggestions.length > 0 && (
+        <div style={{ marginBottom: 14 }}>
+          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
+            <div className="sectionEyebrow">Common items</div>
+            <div className="sectionEyebrowHint">
+              Tap <span style={{ fontWeight: 800 }}>+</span> to add
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {commonSuggestions.map(s => (
+              <div key={s.name} className="suggestionChip">
+                <div className="suggestionChipLabel">{s.name}</div>
+                <button
+                  type="button"
+                  className="chipIconBtn"
+                  onClick={() => {
+                    setModalItem(null);
+                    setModalPreset({ name: s.name, category: s.category, unit: s.unit });
+                    setModalOpen(true);
+                  }}
+                  aria-label={`Add ${s.name}`}
+                >
+                  +
+                </button>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
+
       {/* Category filter tabs */}
-      <div style={{ display: 'flex', gap: 6, marginBottom: 20, flexWrap: 'wrap' }}>
+      <div className="filterPills">
         {filterTabs.map(({ key, label }) => {
           const count = counts[key] ?? 0;
           const active = activeCategory === key;
           return (
             <button
+              type="button"
               key={key}
+              className={`filterPill ${active ? 'filterPillActive' : ''}`}
               onClick={() => setActiveCategory(key)}
-              style={{ background: active ? 'rgba(245, 158, 11, 0.95)' : 'rgba(15, 23, 42, 0.72)', color: active ? '#0b0f17' : 'rgba(226,232,240,0.78)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 10, padding: '7px 14px', fontSize: 13, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
-              {label} {count > 0 && <span style={{ opacity: 0.7, marginLeft: 3 }}>({count})</span>}
+              {label}{count > 0 && <span style={{ opacity: 0.7, marginLeft: 3 }}>({count})</span>}
             </button>
           );
         })}
@@ -321,24 +403,24 @@ export function PantryPage() {
 
       {/* Table */}
       {loading ? (
-        <p style={{ color: '#6b7280', padding: 24 }}>Loading…</p>
+        <p className="muted" style={{ padding: 24 }}>Loading…</p>
       ) : (
-        <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.14)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
+        <div className="card" style={{ overflow: 'hidden' }}>
           {filtered.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center' }}>
-              <div style={{ fontSize: 15, fontWeight: 600, color: '#f9fafb', marginBottom: 6 }}>
+              <div style={{ fontSize: 15, fontWeight: 600, color: 'var(--text-primary)', marginBottom: 6 }}>
                 {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
               </div>
-              <div style={{ fontSize: 13, color: '#6b7280' }}>
+              <div className="muted" style={{ fontSize: 13 }}>
                 {search || activeCategory !== 'all' ? 'Try a different search or category' : 'Add your first item to get started'}
               </div>
             </div>
           ) : (
-            <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+            <table className="iosTable">
               <thead>
-                <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
+                <tr>
                   {['Name', 'Quantity', 'Category', 'Expires', 'Actions'].map(h => (
-                    <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Actions' ? 'right' : 'left', fontSize: 11, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
+                    <th key={h}>{h}</th>
                   ))}
                 </tr>
               </thead>
@@ -350,39 +432,32 @@ export function PantryPage() {
                   };
                   const color = EXPIRY_COLORS[status];
                   return (
-                    <tr
-                      key={item.id}
-                      style={{ borderBottom: '1px solid rgba(148,163,184,0.08)' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(2,6,23,0.35)')}
-                      onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
-                    >
-                      <td style={{ padding: '13px 16px' }}>
-                        <div style={{ fontSize: 14, fontWeight: 600, color: '#f9fafb' }}>{item.name}</div>
-                        {item.notes && <div style={{ fontSize: 12, color: '#4b5563', marginTop: 2 }}>{item.notes}</div>}
+                    <tr key={item.id}>
+                      <td>
+                        <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--text-primary)' }}>{item.name}</div>
+                        {item.notes && <div className="muted" style={{ fontSize: 12, marginTop: 2 }}>{item.notes}</div>}
                       </td>
-                      <td style={{ padding: '13px 16px', fontSize: 14, color: '#9ca3af' }}>{item.quantity} {item.unit}</td>
-                      <td style={{ padding: '13px 16px' }}>
-                        <span style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 10, padding: '4px 10px', fontSize: 12, color: 'rgba(226,232,240,0.75)', fontWeight: 650 }}>
+                      <td style={{ fontSize: 14, color: 'var(--text-secondary)' }}>{item.quantity} {item.unit}</td>
+                      <td>
+                        <span className="pillMuted">
                           {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                         </span>
                       </td>
-                      <td style={{ padding: '13px 16px' }}>
+                      <td>
                         {item.expiry_date
                           ? <span style={{ color, fontSize: 13, fontWeight: 600 }}>{status === 'expired' ? 'Expired' : daysUntilExpiry === 0 ? 'Today' : `${daysUntilExpiry}d`}</span>
-                          : <span style={{ color: '#374151', fontSize: 13 }}>—</span>}
+                          : <span className="muted" style={{ fontSize: 13 }}>—</span>}
                       </td>
-                      <td style={{ padding: '13px 16px', textAlign: 'right' }}>
+                      <td style={{ textAlign: 'right' }}>
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                           <button
+                            type="button"
+                            className="btnGhostSm"
                             onClick={() => { setModalItem(item); setModalOpen(true); }}
-                            style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}
                           >
                             Edit
                           </button>
-                          <button
-                            onClick={() => setDeleteTarget(item)}
-                            style={{ background: 'transparent', border: '1px solid rgba(248,113,113,0.35)', borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 650, color: 'rgba(248,113,113,0.95)', cursor: 'pointer' }}
-                          >
+                          <button type="button" className="btnDangerSm" onClick={() => setDeleteTarget(item)}>
                             Delete
                           </button>
                         </div>
@@ -400,7 +475,8 @@ export function PantryPage() {
       {modalOpen && (
         <PantryModal
           item={modalItem}
-          onClose={() => setModalOpen(false)}
+          preset={modalItem ? null : modalPreset}
+          onClose={() => { setModalOpen(false); setModalPreset(null); }}
           onSaved={fetchItems}
         />
       )}
