@@ -10,7 +10,7 @@ import { useAuthStore } from '../../stores/authStore';
 type Mode = 'login' | 'signup';
 
 export function LoginScreen() {
-  const { signInWithEmail, signUpWithEmail, loading } = useAuthStore();
+  const { signInWithEmail, signUpWithEmail, signInWithGoogle, loading } = useAuthStore();
   const [mode, setMode] = useState<Mode>('login');
   const [name, setName] = useState('');
   const [email, setEmail] = useState('');
@@ -98,6 +98,17 @@ export function LoginScreen() {
           </TouchableOpacity>
 
           <TouchableOpacity
+            style={[s.googleBtn, loading && { opacity: 0.7 }]}
+            onPress={async () => {
+              const { error } = await signInWithGoogle();
+              if (error) Alert.alert('Google sign-in', error.message ?? 'Something went wrong');
+            }}
+            disabled={loading}
+          >
+            <Text style={s.googleBtnText}>Continue with Google</Text>
+          </TouchableOpacity>
+
+          <TouchableOpacity
             style={s.switchBtn}
             onPress={() => setMode(mode === 'login' ? 'signup' : 'login')}
           >
@@ -133,6 +144,15 @@ const s = StyleSheet.create({
     shadowRadius: 10, shadowOffset: { width: 0, height: 4 }, elevation: 5,
   },
   btnText: { fontSize: 17, fontWeight: '700', color: '#0f1117' },
+  googleBtn: {
+    backgroundColor: '#1a1f2e',
+    borderRadius: 14,
+    paddingVertical: 15,
+    alignItems: 'center',
+    borderWidth: 1,
+    borderColor: '#374151',
+  },
+  googleBtnText: { fontSize: 16, fontWeight: '700', color: '#f9fafb' },
   switchBtn: { alignItems: 'center', paddingVertical: 12 },
   switchText: { fontSize: 14, color: '#22c55e' },
 });

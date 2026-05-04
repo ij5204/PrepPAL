@@ -4,6 +4,7 @@ import {
   View, Text, FlatList, TouchableOpacity, StyleSheet,
   RefreshControl, Alert,
 } from 'react-native';
+import { Swipeable } from 'react-native-gesture-handler';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect } from '@react-navigation/native';
 import * as Haptics from 'expo-haptics';
@@ -32,13 +33,16 @@ const EXPIRY_COLORS = {
 };
 
 export function PantryScreen() {
-  const { items, loading, selectedCategory, fetch, remove, setCategory } = usePantryStore();
+  const { items, loading, selectedCategory, fetch, remove, setCategory, subscribeRealtime } =
+    usePantryStore();
   const [showAddSheet, setShowAddSheet] = useState(false);
   const [editingItem, setEditingItem] = useState<PantryItem | null>(null);
 
   useFocusEffect(
     useCallback(() => {
       fetch();
+      const unsub = subscribeRealtime();
+      return unsub;
     }, [])
   );
 
@@ -68,30 +72,43 @@ export function PantryScreen() {
     const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date);
     const expiryColor = EXPIRY_COLORS[status];
 
+    const swipeDelete = (
+      <View style={s.swipeActions}>
+        <TouchableOpacity
+          style={s.swipeDeleteBtn}
+          onPress={() => handleDelete(item)}
+          accessibilityRole="button"
+        >
+          <Text style={s.swipeDeleteText}>Delete</Text>
+        </TouchableOpacity>
+      </View>
+    );
+
     return (
-      <TouchableOpacity
-        style={s.itemRow}
-        onPress={() => { setEditingItem(item); setShowAddSheet(true); }}
-        onLongPress={() => handleDelete(item)}
-        delayLongPress={600}
-      >
-        <Text style={s.categoryIcon}>{CATEGORY_ICONS[item.category] ?? '📦'}</Text>
-        <View style={s.itemInfo}>
-          <Text style={s.itemName}>{item.name}</Text>
-          <Text style={s.itemQty}>{formatQuantity(item.quantity, item.unit)}</Text>
-        </View>
-        {item.expiry_date && (
-          <View style={[s.expiryBadge, { backgroundColor: expiryColor + '22', borderColor: expiryColor }]}>
-            <Text style={[s.expiryText, { color: expiryColor }]}>
-              {status === 'expired'
-                ? 'Expired'
-                : daysUntilExpiry === 0
-                ? 'Today'
-                : `${daysUntilExpiry}d`}
-            </Text>
+      <Swipeable overshootFriction={12} renderRightActions={() => swipeDelete}>
+        <TouchableOpacity
+          style={s.itemRow}
+          onPress={() => { setEditingItem(item); setShowAddSheet(true); }}
+          activeOpacity={0.85}
+        >
+          <Text style={s.categoryIcon}>{CATEGORY_ICONS[item.category] ?? '📦'}</Text>
+          <View style={s.itemInfo}>
+            <Text style={s.itemName}>{item.name}</Text>
+            <Text style={s.itemQty}>{formatQuantity(item.quantity, item.unit)}</Text>
           </View>
-        )}
-      </TouchableOpacity>
+          {item.expiry_date && (
+            <View style={[s.expiryBadge, { backgroundColor: expiryColor + '22', borderColor: expiryColor }]}>
+              <Text style={[s.expiryText, { color: expiryColor }]}>
+                {status === 'expired'
+                  ? 'Expired'
+                  : daysUntilExpiry === 0
+                  ? 'Today'
+                  : `${daysUntilExpiry}d`}
+              </Text>
+            </View>
+          )}
+        </TouchableOpacity>
+      </Swipeable>
     );
   };
 
@@ -180,6 +197,16 @@ const s = StyleSheet.create({
     borderRadius: 8, borderWidth: 1,
   },
   expiryText: { fontSize: 11, fontWeight: '700' },
+  swipeActions: {
+    justifyContent: 'center',
+    backgroundColor: '#7f1d1d',
+  },
+  swipeDeleteBtn: {
+    justifyContent: 'center',
+    paddingHorizontal: 20,
+    height: '100%',
+  },
+  swipeDeleteText: { color: '#fef2f2', fontWeight: '800', fontSize: 14 },
   empty: { flex: 1, justifyContent: 'center', alignItems: 'center', paddingHorizontal: 40 },
   emptyEmoji: { fontSize: 48, marginBottom: 12 },
   emptyTitle: { fontSize: 20, fontWeight: '700', color: '#f9fafb', marginBottom: 8, textAlign: 'center' },

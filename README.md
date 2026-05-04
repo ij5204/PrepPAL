@@ -80,7 +80,7 @@ preppal/
 ### Prerequisites
 
 - Node.js >= 18
-- Yarn >= 1.22
+- npm >= 9 (recommended: use the npm bundled with Node)
 - Supabase CLI (`npm install -g supabase`)
 - Expo CLI (`npm install -g expo-cli`) — for mobile only
 
@@ -89,7 +89,7 @@ preppal/
 ```bash
 git clone https://github.com/your-org/preppal.git
 cd preppal
-yarn install
+npm install
 ```
 
 ### 2. Set up environment variables
@@ -105,33 +105,40 @@ Edit `.env` with your Supabase project credentials (see [Environment Variables](
 ### 3. Start Supabase locally
 
 ```bash
-yarn supabase:start
+npm run supabase:start
 # This runs Postgres + Auth + Edge Functions locally via Docker
 ```
 
 ### 4. Run migrations
 
 ```bash
-yarn supabase:migrate
+npm run supabase:migrate
 ```
 
 ### 5. Seed development data
 
 ```bash
-yarn supabase:seed   # (once seed files are added in supabase/seeds/)
+npm run supabase:seed   # (once seed files are added in supabase/seeds/)
 ```
 
 ### 6. Start the app
 
+Run **mobile** and **web** in separate terminals (both talk to the same Supabase project).
+
 ```bash
-# Mobile
-yarn mobile
+# Website (Vite) — http://localhost:3000 by default
+npm run dev
 
-# Web (Post-MVP)
-yarn web
+# Mobile (Expo)
+npm run mobile
+```
 
-# Admin
-yarn admin
+Other entry points:
+
+```bash
+npm run web          # same as npm run dev (main PrepPAL web app)
+npm run dev:web      # alias
+npm run admin        # internal admin UI (port 5174)
 ```
 
 ---

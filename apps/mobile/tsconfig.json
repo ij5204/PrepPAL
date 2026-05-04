@@ -1,0 +1,14 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true,
+    "noEmit": true,
+    "baseUrl": ".",
+    "paths": {
+      "@preppal/types": ["../../packages/types/src/index.ts"],
+      "@preppal/utils": ["../../packages/utils/src/index.ts"],
+      "@preppal/validation": ["../../packages/validation/src/index.ts"]
+    }
+  },
+  "include": ["src/**/*"]
+}

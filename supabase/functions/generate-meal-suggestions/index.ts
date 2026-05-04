@@ -100,9 +100,18 @@ serve(async (req: Request) => {
     const sortedPantry = [...pantryItems].sort((a, b) =>
       a.name.localeCompare(b.name)
     );
+    const pantrySerialized = sortedPantry
+      .map((i) => `${i.name}: ${i.quantity} ${i.unit}`)
+      .join('\n');
     const pantryString =
-      sortedPantry.map((i) => `${i.name}:${i.quantity}:${i.unit}`).join(',') +
-      `|${userPrefs.dietary_restrictions.join(',')}|${userPrefs.allergies.join(',')}|${userPrefs.disliked_foods.join(',')}|${userPrefs.daily_calorie_goal}|${userPrefs.fitness_goal}`;
+      `${pantrySerialized}\n|PREFERENCES|` +
+      `restrictions:${(userPrefs.dietary_restrictions ?? []).sort().join(',')};` +
+      `allergies:${(userPrefs.allergies ?? []).map((x: string) => x.toLowerCase()).sort().join(',')};` +
+      `dislikes:${(userPrefs.disliked_foods ?? []).map((x: string) => x.toLowerCase()).sort().join(',')};` +
+      `calorie_goal:${userPrefs.daily_calorie_goal};` +
+      `fitness:${userPrefs.fitness_goal};` +
+      `protein:${userPrefs.protein_goal_g ?? 'none'};` +
+      `logged_today_kcal:${caloriesLoggedToday}`;
 
     const pantryHash = await sha256(pantryString);
 
@@ -145,13 +154,16 @@ serve(async (req: Request) => {
       const expiresAt = new Date();
       expiresAt.setHours(expiresAt.getHours() + CACHE_TTL_HOURS);
 
-      await supabase.from('meal_suggestion_cache').upsert({
-        user_id: userId,
-        pantry_hash: pantryHash,
-        suggestions,
-        generated_at: new Date().toISOString(),
-        expires_at: expiresAt.toISOString(),
-      });
+      await supabase.from('meal_suggestion_cache').upsert(
+        {
+          user_id: userId,
+          pantry_hash: pantryHash,
+          suggestions,
+          generated_at: new Date().toISOString(),
+          expires_at: expiresAt.toISOString(),
+        },
+        { onConflict: 'user_id,pantry_hash' }
+      );
 
       await logSystemEvent(supabase, 'meal_suggestion_generated', 'edge:generate-meal-suggestions', {
         user_id: userId,

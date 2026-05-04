@@ -62,7 +62,7 @@ export function CalorieGoalScreen() {
 
         <Text style={s.orLabel}>or enter a custom amount</Text>
         <TextInput
-          style={[s.input, custom && s.inputActive]}
+          style={[s.input, custom ? s.inputActive : undefined]}
           placeholder="e.g. 2400"
           placeholderTextColor="#6b7280"
           value={custom}

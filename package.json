@@ -7,14 +7,18 @@
     "packages/*"
   ],
   "scripts": {
-    "mobile": "yarn workspace @preppal/mobile start",
-    "web": "yarn workspace @preppal/web dev",
-    "admin": "yarn workspace @preppal/admin dev",
-    "build:web": "yarn workspace @preppal/web build",
-    "build:admin": "yarn workspace @preppal/admin build",
-    "typecheck": "yarn workspaces run typecheck",
-    "lint": "yarn workspaces run lint",
-    "test": "yarn workspaces run test",
+    "dev": "npm run dev -w @preppal/web",
+    "dev:web": "npm run dev -w @preppal/web",
+    "mobile": "npm run start -w @preppal/mobile",
+    "dev:mobile": "npm run start -w @preppal/mobile",
+    "web": "npm run dev -w @preppal/web",
+    "admin": "npm run dev -w @preppal/admin",
+    "build": "npm run build:web && npm run build:admin",
+    "build:web": "npm run build -w @preppal/web",
+    "build:admin": "npm run build -w @preppal/admin",
+    "typecheck": "npm run typecheck --workspaces --if-present",
+    "lint": "npm run lint --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
     "supabase:start": "supabase start",
     "supabase:migrate": "supabase db push",
     "supabase:reset": "supabase db reset"
@@ -24,6 +28,6 @@
   },
   "engines": {
     "node": ">=18.0.0",
-    "yarn": ">=1.22.0"
+    "npm": ">=9.0.0"
   }
 }

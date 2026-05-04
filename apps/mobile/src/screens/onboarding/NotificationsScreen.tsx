@@ -3,35 +3,41 @@ import React, { useState } from 'react';
 import { View, Text, TouchableOpacity, StyleSheet, Alert } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useNavigation } from '@react-navigation/native';
-import * as Notifications from 'expo-notifications';
 import { useAuthStore } from '../../stores/authStore';
 import { OnboardingProgress } from '../../components/common/OnboardingProgress';
+import {
+  ensurePushPermissions,
+  registerPushTokenToProfile,
+  scheduleDailyEngagementReminders,
+  scheduleTestLocalNotification,
+} from '../../lib/notifications';
 
 const BENEFITS = [
-  { emoji: '⚠️', text: "We'll alert you 2 days before food expires" },
-  { emoji: '🛒', text: "Get notified when pantry items run out" },
-  { emoji: '🍳', text: "Morning nudge if you haven't planned a meal yet" },
-  { emoji: '📊', text: "Evening reminder if you still have calories to hit" },
+  { emoji: '⚠️', text: "We'll alert you before food expires or goes out of stock" },
+  { emoji: '🛒', text: 'Restock pings when pantry hits zero quantity' },
+  { emoji: '🍳', text: '9 AM nudge if you skip logging in the morning' },
+  { emoji: '📊', text: '7 PM calorie check-in when you’re far below goal' },
 ];
 
 export function NotificationsScreen() {
   const navigation = useNavigation<any>();
-  const { updateProfile } = useAuthStore();
+  const { user } = useAuthStore();
   const [requesting, setRequesting] = useState(false);
+
+  const goDone = () => navigation.navigate('Done');
 
   const handleEnable = async () => {
     setRequesting(true);
     try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      if (status === 'granted') {
-        const token = await Notifications.getExpoPushTokenAsync();
-        await updateProfile({ push_token: token.data });
-      }
-    } catch (e) {
-      // Silently fail — notifications are optional
+      await ensurePushPermissions();
+      if (user?.id) await registerPushTokenToProfile(user.id);
+      await scheduleDailyEngagementReminders();
+      await scheduleTestLocalNotification(4);
+    } catch {
+      /* optional path */
     }
     setRequesting(false);
-    navigation.navigate('Done');
+    goDone();
   };
 
   const handleSkip = () => {
@@ -40,7 +46,7 @@ export function NotificationsScreen() {
       'You won\'t receive expiry alerts or meal reminders. You can enable them later in Settings.',
       [
         { text: 'Go back', style: 'cancel' },
-        { text: 'Skip anyway', onPress: () => navigation.navigate('Done') },
+        { text: 'Skip anyway', onPress: goDone },
       ]
     );
   };
@@ -53,7 +59,7 @@ export function NotificationsScreen() {
         <Text style={s.emoji}>🔔</Text>
         <Text style={s.title}>Stay on top of your food</Text>
         <Text style={s.subtitle}>
-          PrepPAL works best when it can reach you. Here's what you'll get:
+          PrepPAL works best when it can reach you. Here is what you will get:
         </Text>
 
         <View style={s.benefits}>
@@ -93,10 +99,16 @@ const s = StyleSheet.create({
   benefitEmoji: { fontSize: 26, width: 36, textAlign: 'center' },
   benefitText: { fontSize: 15, color: '#d1d5db', flex: 1, lineHeight: 22 },
   enableBtn: {
-    backgroundColor: '#22c55e', borderRadius: 14,
-    paddingVertical: 17, alignItems: 'center', marginBottom: 12,
-    shadowColor: '#22c55e', shadowOpacity: 0.35, shadowRadius: 10,
-    shadowOffset: { width: 0, height: 4 }, elevation: 5,
+    backgroundColor: '#22c55e',
+    borderRadius: 14,
+    paddingVertical: 17,
+    alignItems: 'center',
+    marginBottom: 12,
+    shadowColor: '#22c55e',
+    shadowOpacity: 0.35,
+    shadowRadius: 10,
+    shadowOffset: { width: 0, height: 4 },
+    elevation: 5,
   },
   enableBtnText: { fontSize: 17, fontWeight: '700', color: '#0f1117' },
   skipBtn: { alignItems: 'center', paddingVertical: 12 },

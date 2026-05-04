@@ -1,8 +1,8 @@
 // src/screens/home/HomeScreen.tsx
-import React, { useEffect, useCallback } from 'react';
+import React, { useCallback } from 'react';
 import {
   View, Text, ScrollView, TouchableOpacity, StyleSheet,
-  RefreshControl, ActivityIndicator,
+  RefreshControl,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { useFocusEffect, useNavigation } from '@react-navigation/native';
@@ -14,12 +14,20 @@ import { calcMacroGoals, getExpiryStatus, formatTime } from '@preppal/utils';
 export function HomeScreen() {
   const navigation = useNavigation<any>();
   const { profile } = useAuthStore();
-  const { dailySummary, fetchTodayLogs, logsLoading, subscribeRealtime } = useMealStore();
+  const {
+    dailySummary,
+    fetchTodayLogs,
+    fetchWeekCalories,
+    weekCaloriesByDay,
+    logsLoading,
+    subscribeRealtime,
+  } = useMealStore();
   const { items: pantryItems, fetch: fetchPantry } = usePantryStore();
 
   useFocusEffect(
     useCallback(() => {
       fetchTodayLogs();
+      fetchWeekCalories();
       fetchPantry();
       const unsub = subscribeRealtime();
       return unsub;
@@ -38,6 +46,14 @@ export function HomeScreen() {
     const { status } = getExpiryStatus(item.expiry_date);
     return status === 'warning' || status === 'danger';
   });
+
+  const weekGoalLine = calorieGoal * 7;
+  const maxWeekCal =
+    Math.max(
+      weekGoalLine,
+      ...weekCaloriesByDay.map((d) => d.calories),
+      1
+    ) || 1;
 
   return (
     <SafeAreaView style={s.safe}>
@@ -129,6 +145,30 @@ export function HomeScreen() {
           <Text style={s.suggestBtnText}>🍳  Suggest a Meal</Text>
         </TouchableOpacity>
 
+        {/* Weekly calories */}
+        <View style={s.card}>
+          <Text style={s.cardTitle}>Last 7 days</Text>
+          <View style={s.weekChart}>
+            {weekCaloriesByDay.map(({ date, calories }) => {
+              const pct = Math.min(1, calories / maxWeekCal);
+              const barH = Math.max(6, Math.round(pct * 100));
+              const dow = new Date(date + 'T12:00:00').toLocaleDateString(undefined, {
+                weekday: 'narrow',
+              });
+              const fillColor = calories > calorieGoal ? '#ef4444' : '#22c55e';
+              return (
+                <View key={date} style={s.weekCol}>
+                  <View style={s.weekBarTrack}>
+                    <View style={[s.weekBarFill, { height: barH, backgroundColor: fillColor }]} />
+                  </View>
+                  <Text style={s.weekSmallCals}>{Math.round(calories)}</Text>
+                  <Text style={s.weekLabel}>{dow}</Text>
+                </View>
+              );
+            })}
+          </View>
+        </View>
+
         {/* Today's meals */}
         <View style={s.card}>
           <Text style={s.cardTitle}>Today's Meals</Text>
@@ -211,4 +251,27 @@ const s = StyleSheet.create({
   mealName: { fontSize: 15, fontWeight: '600', color: '#f9fafb' },
   mealTime: { fontSize: 12, color: '#6b7280', marginTop: 2 },
   mealCals: { fontSize: 14, fontWeight: '700', color: '#22c55e' },
+  weekChart: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'flex-end',
+    gap: 6,
+    paddingTop: 8,
+  },
+  weekCol: { flex: 1, alignItems: 'center', gap: 4 },
+  weekBarTrack: {
+    width: '100%',
+    height: 104,
+    justifyContent: 'flex-end',
+    backgroundColor: '#111827',
+    borderRadius: 8,
+    overflow: 'hidden',
+  },
+  weekBarFill: {
+    width: '100%',
+    borderTopLeftRadius: 8,
+    borderTopRightRadius: 8,
+  },
+  weekSmallCals: { fontSize: 10, fontWeight: '700', color: '#9ca3af' },
+  weekLabel: { fontSize: 11, color: '#6b7280', fontWeight: '600' },
 });

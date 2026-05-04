@@ -1,4 +1,58 @@
-import type { PantryItem, ExpiryStatus } from '@preppal/types';
+import type { PantryItem, ExpiryStatus, IngredientUsed, Unit } from '@preppal/types';
+
+/** Normalize ingredient names for fuzzy matching Claude output → pantry rows */
+export function normalizeIngredientKey(name: string): string {
+  return name.trim().toLowerCase().replace(/\s+/g, ' ');
+}
+
+export interface ParsedSuggestionIngredient {
+  name: string;
+  quantity: number;
+  unit: string;
+}
+
+/**
+ * Map AI suggestion quantities to pantry_item_ids without going negative.
+ * Prefers matching name + unit; falls back to name-only if units differ but pantry has stock.
+ */
+export function matchSuggestionIngredientsToPantry(
+  pantry: PantryItem[],
+  suggestionIngredients: ParsedSuggestionIngredient[]
+): IngredientUsed[] {
+  const pool = pantry.map((p) => ({ ...p }));
+  const out: IngredientUsed[] = [];
+
+  for (const ing of suggestionIngredients) {
+    const key = normalizeIngredientKey(ing.name);
+    let idx = pool.findIndex(
+      (p) =>
+        normalizeIngredientKey(p.name) === key &&
+        p.quantity > 0 &&
+        p.unit === (ing.unit as Unit)
+    );
+
+    if (idx === -1) {
+      idx = pool.findIndex((p) => normalizeIngredientKey(p.name) === key && p.quantity > 0);
+    }
+
+    if (idx === -1) continue;
+
+    const row = pool[idx];
+    const deduct = Math.min(Math.max(0, ing.quantity), row.quantity);
+    if (deduct <= 0) continue;
+
+    out.push({
+      pantry_item_id: row.id,
+      name: row.name,
+      quantity_used: deduct,
+      unit: row.unit,
+    });
+
+    pool[idx] = { ...row, quantity: row.quantity - deduct };
+  }
+
+  return out;
+}
 
 // ── Date / Expiry ─────────────────────────────
 

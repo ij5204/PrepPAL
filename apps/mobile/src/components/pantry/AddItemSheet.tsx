@@ -196,7 +196,7 @@ export function AddItemSheet({ visible, item, onClose }: Props) {
               <View style={s.field}>
                 <Text style={s.label}>Name *</Text>
                 <TextInput
-                  style={[s.input, errors.name && s.inputError]}
+                  style={[s.input, errors.name ? s.inputError : undefined]}
                   placeholder="e.g. Chicken Breast"
                   placeholderTextColor="#6b7280"
                   value={form.name}
@@ -211,7 +211,7 @@ export function AddItemSheet({ visible, item, onClose }: Props) {
                 <View style={[s.field, { flex: 1 }]}>
                   <Text style={s.label}>Quantity *</Text>
                   <TextInput
-                    style={[s.input, errors.quantity && s.inputError]}
+                    style={[s.input, errors.quantity ? s.inputError : undefined]}
                     placeholder="0"
                     placeholderTextColor="#6b7280"
                     value={form.quantity}

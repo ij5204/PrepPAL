@@ -20,7 +20,8 @@ export type NotificationType =
   | 'expiry_warning'
   | 'low_stock'
   | 'meal_reminder'
-  | 'restock';
+  | 'restock'
+  | 'calorie_reminder';
 
 export type NotificationStatus = 'sent' | 'failed' | 'pending';
 
@@ -56,6 +57,8 @@ export interface User {
   onboarding_complete: boolean;
   push_token: string | null;
   timezone: string;
+  /** Server-updated heartbeat for admin "last active" */
+  last_active_at?: string;
   created_at: string;
   updated_at: string;
 }
