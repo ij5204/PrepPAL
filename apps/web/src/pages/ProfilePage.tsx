@@ -41,7 +41,6 @@ export function ProfilePage() {
     });
   }, [profile]);
 
-  // Live goal calculation
   const goalResult = (() => {
     if (!form.current_weight || !form.goal_weight || !form.height || !form.goal_date) return null;
     try {
@@ -88,18 +87,34 @@ export function ProfilePage() {
     await refreshProfile();
     setSaving(false);
     setSaved(true);
-    setTimeout(() => setSaved(false), 2000);
+    setTimeout(() => setSaved(false), 2500);
   };
 
   const set = (key: string, val: string) => setForm(f => ({ ...f, [key]: val }));
 
+  const initials = profile?.name
+    ? profile.name.split(' ').map((w: string) => w[0]).slice(0, 2).join('').toUpperCase()
+    : '?';
+
+  const fitnessGoalLabel = { cutting: '🔥 Cutting', maintaining: '⚖️ Maintaining', bulking: '💪 Bulking' }[form.fitness_goal];
+
   return (
     <div style={{ maxWidth: 680 }}>
-      <h1 className="pageTitle">Profile</h1>
-      <p className="pageSubtitle" style={{ marginBottom: 24 }}>Your personal details and goals</p>
+      {/* Avatar header */}
+      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div className="avatarLg">{initials}</div>
+        <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{profile?.name || 'Your Profile'}</h1>
+        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
+          {form.fitness_goal && (
+            <span style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border-strong)', borderRadius: 999, padding: '3px 12px', fontSize: 12, fontWeight: 700 }}>
+              {fitnessGoalLabel}
+            </span>
+          )}
+        </div>
+      </div>
 
       {/* Personal Info */}
-      <Section title="Personal Info">
+      <Section title="Personal Info" icon="👤">
         <Row label="Name">
           <Input value={form.name} onChange={v => set('name', v)} placeholder="Your name" />
         </Row>
@@ -118,7 +133,7 @@ export function ProfilePage() {
       </Section>
 
       {/* Body Stats */}
-      <Section title="Body Stats">
+      <Section title="Body Stats" icon="📊">
         <Row label={`Current weight (${form.weight_unit})`}>
           <Input value={form.current_weight} onChange={v => set('current_weight', v)} placeholder="e.g. 75" type="number" />
         </Row>
@@ -137,13 +152,13 @@ export function ProfilePage() {
       </Section>
 
       {/* Weight Goal */}
-      <Section title="Weight Goal">
+      <Section title="Weight Goal" icon="🎯">
         <Row label="Fitness goal">
           <Select value={form.fitness_goal} onChange={v => set('fitness_goal', v)}
             options={[
-              { value: 'cutting', label: 'Cutting (lose fat)' },
-              { value: 'maintaining', label: 'Maintaining' },
-              { value: 'bulking', label: 'Bulking (gain muscle)' },
+              { value: 'cutting', label: '🔥 Cutting (lose fat)' },
+              { value: 'maintaining', label: '⚖️ Maintaining' },
+              { value: 'bulking', label: '💪 Bulking (gain muscle)' },
             ]} />
         </Row>
         <Row label={`Goal weight (${form.weight_unit})`}>
@@ -156,62 +171,54 @@ export function ProfilePage() {
 
       {/* AI Recommendation */}
       {goalResult && (
-        <div className="card" style={{ padding: 20, marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 750, color: 'var(--text-primary)', marginBottom: 16 }}>
-            Recommended targets
+        <div className="card animate-fade-in" style={{ padding: 22, marginBottom: 16, border: '1px solid var(--accent-border-strong)', background: 'linear-gradient(135deg, var(--accent-bg) 0%, transparent 60%)' }}>
+          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+            <span style={{ fontSize: 16 }}>✦</span>
+            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>AI Recommended Targets</span>
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 14 }}>
             {[
               { label: 'BMR', value: `${goalResult.bmr} kcal`, desc: 'Calories at rest' },
               { label: 'TDEE', value: `${goalResult.tdee} kcal`, desc: 'Total daily burn' },
-              { label: 'Target calories', value: `${goalResult.recommendedCalories} kcal`, desc: 'To hit your goal' },
-              { label: 'Pace', value: formatWeightChange(goalResult.weeklyChange, form.weight_unit), desc: `~${goalResult.weeksToGoal} weeks to goal` },
+              { label: 'Target', value: `${goalResult.recommendedCalories} kcal`, desc: 'To hit your goal' },
+              { label: 'Pace', value: formatWeightChange(goalResult.weeklyChange, form.weight_unit), desc: `~${goalResult.weeksToGoal} wks to goal` },
             ].map(({ label, value, desc }) => (
               <div key={label} style={{ background: 'var(--surface-2)', borderRadius: 12, padding: 12, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 850, color: 'var(--text-primary)', margin: '4px 0' }}>{value}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                <div style={{ fontSize: 17, fontWeight: 850, color: 'var(--text-primary)', margin: '4px 0' }}>{value}</div>
                 <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>
               </div>
             ))}
           </div>
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}>
+          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
             {[
               { label: 'Protein', value: `${goalResult.protein_g}g`, color: '#3b82f6' },
               { label: 'Carbs', value: `${goalResult.carbs_g}g`, color: '#f59e0b' },
               { label: 'Fat', value: `${goalResult.fat_g}g`, color: '#f97316' },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 12, padding: 10, textAlign: 'center', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 16, fontWeight: 800, color }}>{value}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
+              <div key={label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                <div style={{ fontSize: 15, fontWeight: 800, color }}>{value}</div>
+                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
               </div>
             ))}
           </div>
 
           {goalResult.isAggressive && (
-            <div style={{ background: 'rgba(245,158,11,0.10)', borderRadius: 12, padding: 10, marginBottom: 10, fontSize: 13, color: 'rgba(180,83,9,0.92)', border: '1px solid rgba(245,158,11,0.22)' }}>
+            <div className="calloutWarn" style={{ marginBottom: 12 }}>
               Your timeline is aggressive. Consider extending your goal date for a safer pace.
             </div>
           )}
 
-          <button onClick={applyRecommendation} style={{
-            width: '100%',
-            background: 'var(--accent)',
-            color: 'var(--accent-text)',
-            border: '1px solid var(--accent-border-strong)',
-            borderRadius: 12,
-            padding: '11px',
-            fontSize: 14,
-            fontWeight: 750, cursor: 'pointer',
-          }}>
-            Apply these targets to my account
+          <button onClick={applyRecommendation} className="btn btnPrimary" style={{ width: '100%', padding: 12 }}>
+            Apply these targets
           </button>
         </div>
       )}
 
       {/* Nutrition Targets */}
-      <Section title="Nutrition Targets">
+      <Section title="Nutrition Targets" icon="🎯">
         <Row label="Daily calorie goal">
           <Input value={form.daily_calorie_goal} onChange={v => set('daily_calorie_goal', v)} placeholder="e.g. 2200" type="number" />
         </Row>
@@ -225,21 +232,22 @@ export function ProfilePage() {
         onClick={handleSave}
         disabled={saving}
         className="btn btnPrimary"
-        style={{ width: '100%', padding: '15px', fontSize: 16, fontWeight: 750, borderRadius: 14 }}
+        style={{ width: '100%', padding: 15, fontSize: 15, fontWeight: 750, borderRadius: 'var(--radius)' }}
       >
-        {saving ? 'Saving…' : saved ? 'Saved' : 'Save Changes'}
+        {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
       </button>
     </div>
   );
 }
 
-function Section({ title, children }: { title: string; children: React.ReactNode }) {
+function Section({ title, icon, children }: { title: string; icon?: string; children: React.ReactNode }) {
   return (
-    <div className="card" style={{ padding: 20, marginBottom: 16 }}>
-      <div style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>{title}</div>
-      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-        {children}
+    <div className="card" style={{ padding: 20, marginBottom: 14 }}>
+      <div style={{ display: 'flex', alignItems: 'center', gap: 6, fontSize: 12, fontWeight: 750, color: 'var(--text-muted)', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>
+        {icon && <span style={{ fontSize: 14 }}>{icon}</span>}
+        {title}
       </div>
+      <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>{children}</div>
     </div>
   );
 }
@@ -257,8 +265,10 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
   value: string; onChange: (v: string) => void; placeholder?: string; type?: string;
 }) {
   return (
-    <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ width: '100%', background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none' }} />
+    <input
+      type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
+      style={{ width: '100%', background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none' }}
+    />
   );
 }
 
@@ -267,8 +277,10 @@ function Select({ value, onChange, options }: {
   options: Array<{ value: string; label: string }>;
 }) {
   return (
-    <select value={value} onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}>
+    <select
+      value={value} onChange={e => onChange(e.target.value)}
+      style={{ width: '100%', background: 'var(--field-bg)', border: '1px solid var(--field-border)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: 'var(--text-primary)', outline: 'none', cursor: 'pointer' }}
+    >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );

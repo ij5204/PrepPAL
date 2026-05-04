@@ -2,6 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { MealSuggestion } from '@preppal/types';
 
+const MACRO_COLORS = {
+  kcal: 'var(--accent)',
+  protein: '#3b82f6',
+  carbs: '#f59e0b',
+  fat: '#f97316',
+};
+
 export function MealsPage() {
   const [suggestions, setSuggestions] = useState<MealSuggestion[]>([]);
   const [loading, setLoading] = useState(false);
@@ -81,7 +88,7 @@ export function MealsPage() {
       if (insertErr) throw insertErr;
 
       if (!mountedRef.current) return;
-      showToast(`Logged: ${meal.meal_name}`);
+      showToast(`✓ Logged: ${meal.meal_name}`);
     } catch (e: any) {
       if (!mountedRef.current) return;
       setError(e?.message ?? 'Failed to log meal. Please try again.');
@@ -92,90 +99,130 @@ export function MealsPage() {
 
   return (
     <div>
-      <h1 className="pageTitle">Meal Ideas</h1>
-      <p className="pageSubtitle">Suggestions based on what you already have.</p>
+      {/* Header */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 20 }}>
+        <div>
+          <h1 className="pageTitle" style={{ margin: 0 }}>Meal Ideas</h1>
+          <p className="pageSubtitle" style={{ marginTop: 4, marginBottom: 0 }}>
+            AI suggestions based on your pantry
+          </p>
+        </div>
+        <button
+          onClick={fetchSuggestions}
+          disabled={loading}
+          className="btn btnPrimary"
+          style={{ padding: '11px 20px', fontSize: 14, fontWeight: 750 }}
+        >
+          {loading ? (
+            <span style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span className="animate-spin" style={{ display: 'inline-block', width: 14, height: 14, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} />
+              Generating…
+            </span>
+          ) : suggestions.length ? '✦ Regenerate' : '✦ Generate ideas'}
+        </button>
+      </div>
 
-      <button onClick={fetchSuggestions} disabled={loading} className="btn btnPrimary" style={{ padding: '13px 24px', fontSize: 15, fontWeight: 750, marginBottom: 18 }}>
-        {loading ? 'Generating…' : suggestions.length ? 'Regenerate' : 'Generate meal ideas'}
-      </button>
+      {error && <div className="calloutDanger">{error}</div>}
+      {fallbackUsed && <div className="calloutWarn">These results may be stale. Regenerate to refresh.</div>}
 
-      {error && (
-        <div className="calloutDanger">{error}</div>
-      )}
-
-      {fallbackUsed && (
-        <div className="calloutWarn">
-          These results may be stale. Regenerate to refresh.
+      {/* Empty state */}
+      {!loading && suggestions.length === 0 && !error && (
+        <div className="card" style={{ padding: '56px 32px', textAlign: 'center' }}>
+          <div style={{ fontSize: 48, marginBottom: 16 }}>🍽️</div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 8 }}>
+            No meal ideas yet
+          </div>
+          <div style={{ fontSize: 14, color: 'var(--text-muted)', marginBottom: 24, maxWidth: 300, margin: '0 auto 24px' }}>
+            Add items to your pantry first, then generate personalized meal suggestions powered by AI.
+          </div>
+          <button onClick={fetchSuggestions} className="btn btnPrimary" style={{ padding: '12px 28px', fontSize: 15 }}>
+            ✦ Generate meal ideas
+          </button>
         </div>
       )}
 
       <div className="mealIdeasStack">
         {suggestions.map((meal, idx) => (
-          <div key={idx} className="card cardPad">
-            <div>
-              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12, marginBottom: 12 }}>
-                <div style={{ minWidth: 0 }}>
-                  <h3 style={{ fontSize: 18, fontWeight: 750, color: 'var(--text-primary)', margin: 0, lineHeight: 1.25 }}>{meal.meal_name}</h3>
+          <div key={idx} className="card animate-fade-in" style={{ overflow: 'hidden' }}>
+            {/* Card header with gradient accent */}
+            <div style={{
+              padding: '18px 20px 16px',
+              borderBottom: '1px solid var(--border)',
+              background: 'linear-gradient(135deg, var(--accent-bg) 0%, transparent 100%)',
+            }}>
+              <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 14 }}>
+                <div style={{ minWidth: 0, flex: 1 }}>
+                  <h3 style={{ fontSize: 17, fontWeight: 800, color: 'var(--text-primary)', margin: '0 0 6px', letterSpacing: '-0.01em', lineHeight: 1.3 }}>
+                    {meal.meal_name}
+                  </h3>
                   {meal.missing_ingredients.length > 0 && (
-                    <div style={{ marginTop: 6 }}>
-                      <span className="badgeWarn">
-                        {meal.missing_ingredients.length} missing ingredient{meal.missing_ingredients.length === 1 ? '' : 's'}
-                      </span>
-                    </div>
+                    <span className="badgeWarn">
+                      ⚠ {meal.missing_ingredients.length} missing ingredient{meal.missing_ingredients.length > 1 ? 's' : ''}
+                    </span>
                   )}
                 </div>
-
                 <button
                   onClick={() => logMeal(meal, idx)}
                   disabled={logged === idx}
                   className="btn btnPrimary"
-                  style={{ padding: '10px 12px', fontSize: 13, fontWeight: 750, whiteSpace: 'nowrap' }}
+                  style={{ padding: '9px 16px', fontSize: 13, fontWeight: 750, whiteSpace: 'nowrap', flexShrink: 0 }}
                 >
-                  {logged === idx ? 'Logging…' : 'Log'}
+                  {logged === idx ? 'Logging…' : '+ Log meal'}
                 </button>
               </div>
+            </div>
 
+            {/* Macro pills */}
+            <div style={{ padding: '16px 20px 14px' }}>
               <div className="mealMacroGrid">
                 {([
-                  ['kcal', meal.calories, true],
-                  ['protein', `${meal.protein_g}g`, false],
-                  ['carbs', `${meal.carbs_g}g`, false],
-                  ['fat', `${meal.fat_g}g`, false],
-                ] as const).map(([label, value, accent]) => (
+                  ['kcal', meal.calories, 'kcal'],
+                  ['protein', `${meal.protein_g}g`, 'protein'],
+                  ['carbs', `${meal.carbs_g}g`, 'carbs'],
+                  ['fat', `${meal.fat_g}g`, 'fat'],
+                ] as [string, string | number, keyof typeof MACRO_COLORS][]).map(([label, value, colorKey]) => (
                   <div key={label} className="mealMacroPill">
-                    <div className={accent ? 'mealMacroValueAccent' : 'mealMacroValue'}>{value}</div>
+                    <div style={{ fontSize: 16, fontWeight: 800, color: MACRO_COLORS[colorKey] }}>{value}</div>
                     <div className="mealMacroLabel">{label}</div>
                   </div>
                 ))}
               </div>
 
-              <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 12 }}>
-                {meal.tags.map((tag: string) => (
-                  <span key={tag} className="mealTag">{tag}</span>
-                ))}
-              </div>
+              {/* Tags */}
+              {meal.tags.length > 0 && (
+                <div style={{ display: 'flex', flexWrap: 'wrap', gap: 6, marginBottom: 14 }}>
+                  {meal.tags.map((tag: string) => (
+                    <span key={tag} className="mealTag">{tag}</span>
+                  ))}
+                </div>
+              )}
 
+              {/* Instructions toggle */}
               <button
                 type="button"
                 className="mealInstructionsToggle"
                 onClick={() => setExpanded(expanded === idx ? null : idx)}
               >
-                {expanded === idx ? 'Hide instructions' : 'Show instructions'}
+                {expanded === idx ? '▲ Hide details' : '▼ Show details'}
               </button>
 
               {expanded === idx && (
-                <div className="mealDivider">
+                <div className="mealDivider animate-fade-in">
                   <p className="mealInstructionsBody">{meal.instructions}</p>
+
                   <div className="mealListEyebrow">Ingredients used</div>
-                  {meal.ingredients_used.map((i: MealSuggestion['ingredients_used'][number], n: number) => (
+                  {meal.ingredients_used.map((i, n) => (
                     <div key={n} className="mealListLine">• {i.name} — {i.quantity} {i.unit}</div>
                   ))}
-                  {meal.missing_ingredients.length > 0 && <>
-                    <div className="mealListEyebrowWarn">Missing</div>
-                    {meal.missing_ingredients.map((i: MealSuggestion['missing_ingredients'][number], n: number) => (
-                      <div key={n} className="mealListLine" style={{ color: 'var(--amber)' }}>• {i.name} — {i.quantity} {i.unit}</div>
-                    ))}
-                  </>}
+
+                  {meal.missing_ingredients.length > 0 && (
+                    <>
+                      <div className="mealListEyebrowWarn">Missing from pantry</div>
+                      {meal.missing_ingredients.map((i, n) => (
+                        <div key={n} className="mealListLine" style={{ color: 'var(--amber)' }}>• {i.name} — {i.quantity} {i.unit}</div>
+                      ))}
+                    </>
+                  )}
                 </div>
               )}
             </div>
@@ -184,9 +231,7 @@ export function MealsPage() {
       </div>
 
       {toast && (
-        <div className="toastFloating" role="status">
-          {toast}
-        </div>
+        <div className="toastFloating" role="status">{toast}</div>
       )}
     </div>
   );
