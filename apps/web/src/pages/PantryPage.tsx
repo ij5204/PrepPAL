@@ -25,19 +25,21 @@ const EMPTY_FORM: FormState = { name: '', quantity: '', unit: 'pieces', expiry_d
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
-  background: 'var(--field-bg)',
-  border: '1px solid var(--field-border)',
-  borderRadius: 12,
-  padding: '10px 14px',
-  fontSize: 14,
-  color: 'var(--text-primary)',
+  background: 'var(--surf2)',
+  border: '1px solid var(--bdr2)',
+  borderRadius: 9,
+  padding: '10px 13px',
+  fontSize: 13,
+  color: 'var(--txt)',
   outline: 'none',
   boxSizing: 'border-box',
+  fontFamily: 'var(--fb)',
+  transition: 'border-color .15s',
 };
-const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer' };
+const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' as any };
 const labelStyle: React.CSSProperties = {
-  fontSize: 11.5, fontWeight: 750, color: 'var(--text-muted)', textTransform: 'uppercase',
-  letterSpacing: '0.5px', display: 'block', marginBottom: 6,
+  fontSize: 10, fontWeight: 600, color: 'var(--txt2)', textTransform: 'uppercase' as any,
+  letterSpacing: '1px', display: 'block', marginBottom: 5,
 };
 
 // ── Modal ─────────────────────────────────────────────────────────────────────
@@ -110,60 +112,62 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
 
   return (
     <div className="modalOverlay" onClick={e => { if (e.target === e.currentTarget) onClose(); }}>
-      <div className="modalPanel" onClick={e => e.stopPropagation()}>
-        <div className="modalHead">
-          <h2 className="modalTitle">
-            {CATEGORY_ICONS[form.category]} {isEdit ? 'Edit Item' : 'Add Item'}
-          </h2>
-          <button type="button" className="modalClose" onClick={onClose}>×</button>
+      <div className="modalPanel" style={{ width: 480, padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--bdr)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+          <div className="modalTitle">
+            {CATEGORY_ICONS[form.category]} {isEdit ? 'EDIT ITEM' : 'ADD PANTRY ITEM'}
+          </div>
+          <button type="button" className="modalClose" onClick={onClose}>✕</button>
         </div>
 
-        <div className="stackSm">
+        <div style={{ padding: 24, display: 'flex', flexDirection: 'column', gap: 14 }}>
           <div>
-            <label style={labelStyle}>Name *</label>
+            <label style={labelStyle}>Item Name</label>
             <input style={inputStyle} placeholder="e.g. Chicken Breast" value={form.name} onChange={set('name')} autoFocus />
           </div>
 
-          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
             <div>
-              <label style={labelStyle}>Quantity *</label>
+              <label style={labelStyle}>Quantity</label>
               <input style={inputStyle} type="number" min="0" step="any" placeholder="e.g. 500" value={form.quantity} onChange={set('quantity')} />
             </div>
             <div>
-              <label style={labelStyle}>Unit *</label>
+              <label style={labelStyle}>Unit</label>
               <select style={selectStyle} value={form.unit} onChange={set('unit')}>
                 {UNITS.map(u => <option key={u} value={u}>{u}</option>)}
               </select>
             </div>
           </div>
 
-          <div>
-            <label style={labelStyle}>Category *</label>
-            <select style={selectStyle} value={form.category} onChange={set('category')}>
-              {CATEGORIES.map(c => (
-                <option key={c} value={c}>{CATEGORY_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
-              ))}
-            </select>
-          </div>
-
-          <div>
-            <label style={labelStyle}>Expiry Date</label>
-            <input style={inputStyle} type="date" value={form.expiry_date} onChange={set('expiry_date')} />
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Category</label>
+              <select style={selectStyle} value={form.category} onChange={set('category')}>
+                {CATEGORIES.map(c => (
+                  <option key={c} value={c}>{CATEGORY_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                ))}
+              </select>
+            </div>
+            <div>
+              <label style={labelStyle}>Expiry Date</label>
+              <input style={inputStyle} type="date" value={form.expiry_date} onChange={set('expiry_date')} />
+            </div>
           </div>
 
           <div>
             <label style={labelStyle}>Notes</label>
-            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 64 } as React.CSSProperties} placeholder="e.g. lactose free, organic…" value={form.notes} onChange={set('notes')} />
+            <textarea style={{ ...inputStyle, resize: 'vertical', minHeight: 64 } as React.CSSProperties}
+              placeholder="e.g. lactose free, organic…" value={form.notes} onChange={set('notes')} />
           </div>
 
-          {error && <div className="calloutDanger" style={{ marginBottom: 0 }}>{error}</div>}
+          {error && <div style={{ background: 'rgba(255,77,0,.08)', border: '1px solid rgba(255,77,0,.2)', borderRadius: 9, padding: '10px 14px', fontSize: 13, color: '#FF7A50' }}>{error}</div>}
+        </div>
 
-          <div className="flexActions">
-            <button type="button" onClick={onClose} className="btn" style={{ flex: 1 }}>Cancel</button>
-            <button type="button" onClick={handleSave} disabled={saving} className="btn btnPrimary" style={{ flex: 2 }}>
-              {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add to Pantry'}
-            </button>
-          </div>
+        <div style={{ padding: '16px 24px', borderTop: '1px solid var(--bdr)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
+          <button type="button" onClick={onClose} className="btn" style={{ flex: 1 }}>Cancel</button>
+          <button type="button" onClick={handleSave} disabled={saving} className="tbBtn" style={{ flex: 2, borderRadius: 9, fontSize: 15 }}>
+            {saving ? 'Saving…' : isEdit ? 'SAVE CHANGES' : 'SAVE ITEM'}
+          </button>
         </div>
       </div>
     </div>
@@ -177,19 +181,21 @@ function DeleteConfirm({ item, onCancel, onConfirm, deleting }: {
 }) {
   return (
     <div className="modalOverlay" style={{ zIndex: 1001 }} onClick={e => { if (e.target === e.currentTarget) onCancel(); }}>
-      <div className="modalPanel modalPanelSm" onClick={e => e.stopPropagation()}>
-        <h3 className="modalTitle" style={{ fontSize: 18, marginBottom: 10 }}>Delete "{item.name}"?</h3>
-        <p style={{ margin: '0 0 20px', fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5 }}>
-          This will remove it from your pantry. This cannot be undone.
-        </p>
-        <div style={{ display: 'flex', gap: 10 }}>
-          <button type="button" onClick={onCancel} className="btn" style={{ flex: 1 }}>Cancel</button>
-          <button
-            type="button" onClick={onConfirm} disabled={deleting}
-            style={{ flex: 1, background: 'var(--danger)', border: 'none', borderRadius: 'var(--radius-sm)', padding: 11, fontSize: 14, fontWeight: 700, color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}
-          >
-            {deleting ? 'Deleting…' : 'Delete'}
-          </button>
+      <div className="modalPanel" style={{ width: 380, padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
+        <div style={{ padding: '20px 24px' }}>
+          <div className="modalTitle" style={{ fontSize: 20, marginBottom: 10 }}>Delete "{item.name}"?</div>
+          <p style={{ margin: '0 0 20px', fontSize: 13, color: 'var(--txt2)', lineHeight: 1.5 }}>
+            This will remove it from your pantry. This cannot be undone.
+          </p>
+          <div style={{ display: 'flex', gap: 10 }}>
+            <button type="button" onClick={onCancel} className="btn" style={{ flex: 1 }}>Cancel</button>
+            <button
+              type="button" onClick={onConfirm} disabled={deleting}
+              style={{ flex: 1, background: 'var(--acc2)', border: 'none', borderRadius: 'var(--rad)', padding: 11, fontSize: 13, fontWeight: 700, color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}
+            >
+              {deleting ? 'Deleting…' : 'Delete'}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -361,103 +367,111 @@ export function PantryPage() {
     .filter(s => activeCategory === 'all' || s.category === activeCategory)
     .slice(0, 10);
 
+  const getCatClass = (cat: string) => ({
+    protein: 'cbProtein', produce: 'cbProduce', dairy: 'cbDairy',
+    pantry: 'cbPantry', spice: 'cbSpice', other: 'cbOther',
+  }[cat] ?? 'cbOther');
+
+  const getExpiryPill = (item: PantryItem) => {
+    const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date) as any;
+    if (!item.expiry_date) return { label: '—', cls: '' };
+    if (status === 'expired') return { label: 'Expired', cls: 'pillR' };
+    if (daysUntilExpiry === 0) return { label: 'Today', cls: 'pillR' };
+    if (daysUntilExpiry <= 2) return { label: `${daysUntilExpiry}d`, cls: 'pillO' };
+    if (daysUntilExpiry <= 5) return { label: `${daysUntilExpiry} days`, cls: 'pillO' };
+    return { label: `${daysUntilExpiry} days`, cls: 'pillG' };
+  };
+
   return (
-    <div>
+    <div className="pageWrapper">
       {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
+      <div className="pageHeader">
         <div>
-          <h1 className="pageTitle" style={{ margin: 0 }}>Pantry</h1>
-          <p className="pageSubtitle" style={{ marginTop: 4, marginBottom: 0 }}>
-            {items.length} item{items.length !== 1 ? 's' : ''} in your kitchen
-          </p>
+          <h1 className="pageTitle">Pantry</h1>
+          <p className="pageSub">{items.length} items · {items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon</p>
         </div>
-        <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="btn btnPrimary">
-          + Add item
-        </button>
+        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
+          <div className="filterBar">
+            {filterTabs.map(({ key, label }) => (
+              <button
+                type="button" key={key}
+                className={`fchip${activeCategory === key ? ' active' : ''}`}
+                onClick={() => setActiveCategory(key)}
+              >
+                {label}
+              </button>
+            ))}
+          </div>
+          <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="tbBtn">+ Add Item</button>
+        </div>
       </div>
 
       {/* Search */}
       <input
-        className="iosSearch"
+        style={{ background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8, padding: '7px 14px', fontSize: 13, color: 'var(--txt2)', width: '100%', outline: 'none', fontFamily: 'var(--fb)' }}
         placeholder="Search items…"
         value={search}
         onChange={e => setSearch(e.target.value)}
       />
 
-      {/* Common suggestions */}
-      {search.trim() === '' && commonSuggestions.length > 0 && (
-        <div style={{ marginBottom: 16 }}>
-          <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between', marginBottom: 8 }}>
-            <div className="sectionEyebrow">Quick add</div>
-            <div className="sectionEyebrowHint">Tap + to add</div>
+      {/* Table */}
+      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
+        {loading ? (
+          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 32, color: 'var(--txt2)' }}>
+            <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--surf3)', borderTopColor: 'var(--acc)', borderRadius: '50%' }} />
+            Loading items…
           </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {commonSuggestions.map(s => (
-              <div key={s.name} className="suggestionChip">
-                <div className="suggestionChipLabel">{CATEGORY_ICONS[s.category]} {s.name}</div>
-                <button
-                  type="button"
-                  className="chipIconBtn"
-                  onClick={() => { setModalItem(null); setModalPreset({ name: s.name, category: s.category, unit: s.unit }); setModalOpen(true); }}
-                >
-                  +
-                </button>
-              </div>
-            ))}
+        ) : filtered.length === 0 ? (
+          <div style={{ padding: '56px 32px', textAlign: 'center' }}>
+            <div style={{ fontSize: 40, marginBottom: 14 }}>{activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}</div>
+            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--txt)', marginBottom: 6 }}>
+              {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
+            </div>
+            <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 20 }}>
+              {search || activeCategory !== 'all' ? 'Try a different search or category' : 'Add your first item to get started'}
+            </div>
+            {!search && activeCategory === 'all' && (
+              <button className="tbBtn" onClick={() => { setModalItem(null); setModalOpen(true); }}>+ Add First Item</button>
+            )}
           </div>
-        </div>
-      )}
-
-      {/* Category filter */}
-      <div className="filterPills">
-        {filterTabs.map(({ key, label }) => {
-          const count = counts[key] ?? 0;
-          return (
-            <button
-              type="button"
-              key={key}
-              className={`filterPill ${activeCategory === key ? 'filterPillActive' : ''}`}
-              onClick={() => setActiveCategory(key)}
-            >
-              {label}{count > 0 && <span style={{ opacity: 0.7, marginLeft: 4, fontSize: 11 }}>({count})</span>}
-            </button>
-          );
-        })}
+        ) : (
+          <table className="ptable">
+            <thead>
+              <tr>
+                <th>Item</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Expiry</th><th>Status</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody>
+              {filtered.map(item => {
+                const pill = getExpiryPill(item);
+                return (
+                  <tr key={item.id}>
+                    <td style={{ fontWeight: 500 }}>{CATEGORY_ICONS[item.category]} {item.name}</td>
+                    <td><span className={`catBadge ${getCatClass(item.category)}`}>{item.category}</span></td>
+                    <td><input className="qtyInput" type="number" defaultValue={item.quantity} /></td>
+                    <td style={{ color: 'var(--txt2)' }}>{item.unit}</td>
+                    <td style={{ color: pill.cls === 'pillR' ? '#FF6040' : 'var(--txt2)' }}>{item.expiry_date ?? '—'}</td>
+                    <td>
+                      {pill.label !== '—'
+                        ? <span className={`expPill ${pill.cls}`} style={{ margin: 0 }}>{pill.label}</span>
+                        : <span style={{ color: 'var(--txt3)', fontSize: 12 }}>—</span>}
+                    </td>
+                    <td style={{ display: 'flex', gap: 6 }}>
+                      <button className="trDel" style={{ color: 'var(--txt2)', fontSize: 12, padding: '4px 10px' }}
+                        onClick={() => { setModalItem(item); setModalOpen(true); }}>Edit</button>
+                      <button className="trDel" onClick={() => setDeleteTarget(item)}>✕</button>
+                    </td>
+                  </tr>
+                );
+              })}
+            </tbody>
+          </table>
+        )}
+        <button
+          style={{ width: '100%', border: 'none', borderTop: '1px dashed var(--bdr2)', padding: 11, borderRadius: 0, color: 'var(--txt3)', background: 'none', cursor: 'pointer', fontSize: 12 }}
+          onClick={() => { setModalItem(null); setModalOpen(true); }}
+        >+ Add pantry item</button>
       </div>
-
-      {/* Card grid */}
-      {loading ? (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '32px 0', color: 'var(--text-muted)' }}>
-          <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--border-2)', borderTopColor: 'var(--accent)', borderRadius: '50%' }} />
-          Loading items…
-        </div>
-      ) : filtered.length === 0 ? (
-        <div className="card" style={{ padding: '56px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 14 }}>{activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary)', marginBottom: 6 }}>
-            {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
-          </div>
-          <div style={{ fontSize: 13, color: 'var(--text-muted)', marginBottom: 20 }}>
-            {search || activeCategory !== 'all' ? 'Try a different search or category' : 'Add your first item to get started'}
-          </div>
-          {!search && activeCategory === 'all' && (
-            <button className="btn btnPrimary" onClick={() => { setModalItem(null); setModalOpen(true); }}>
-              + Add first item
-            </button>
-          )}
-        </div>
-      ) : (
-        <div className="pantryGrid">
-          {filtered.map(item => (
-            <PantryItemCard
-              key={item.id}
-              item={item}
-              onEdit={() => { setModalItem(item); setModalOpen(true); }}
-              onDelete={() => setDeleteTarget(item)}
-            />
-          ))}
-        </div>
-      )}
 
       {modalOpen && (
         <PantryModal

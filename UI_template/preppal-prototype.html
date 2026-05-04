@@ -1,0 +1,1280 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>PrepPAL — Full Prototype</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=DM+Sans:wght@300;400;500;600&display=swap" rel="stylesheet">
+<style>
+*{box-sizing:border-box;margin:0;padding:0;}
+:root{
+  --acc:#C8FF00;--acc2:#FF4D00;--acc3:#00D4FF;
+  --dark:#0A0A0A;--surf:#141414;--surf2:#1C1C1C;--surf3:#252525;--surf4:#2E2E2E;
+  --txt:#F0F0EB;--txt2:#888880;--txt3:#444440;
+  --bdr:rgba(255,255,255,0.07);--bdr2:rgba(255,255,255,0.13);
+  --fd:'Bebas Neue',sans-serif;--fb:'DM Sans',sans-serif;
+  --rad:12px;--rad-lg:18px;--rad-xl:24px;
+}
+html,body{height:100%;font-family:var(--fb);background:#050505;color:var(--txt);overflow:hidden;}
+
+/* ── LAYOUT ── */
+.app{display:grid;grid-template-columns:240px 1fr;grid-template-rows:58px 1fr;height:100vh;overflow:hidden;}
+.topbar{grid-column:1/-1;background:var(--surf);border-bottom:1px solid var(--bdr2);display:flex;align-items:center;padding:0 24px;gap:20px;z-index:100;}
+.sidebar{background:var(--surf);border-right:1px solid var(--bdr2);display:flex;flex-direction:column;overflow-y:auto;padding:8px 0;}
+.main-area{overflow:hidden;position:relative;background:var(--dark);}
+
+/* ── BRAND ── */
+.brand{font-family:var(--fd);font-size:24px;letter-spacing:2px;color:var(--acc);margin-right:auto;cursor:pointer;}
+
+/* ── TOPBAR ── */
+.tb-search{background:var(--surf2);border:1px solid var(--bdr2);border-radius:8px;padding:7px 14px;font-size:12px;color:var(--txt2);width:220px;display:flex;align-items:center;gap:8px;cursor:text;}
+.tb-notif{width:34px;height:34px;border-radius:9px;background:var(--surf2);border:1px solid var(--bdr2);display:flex;align-items:center;justify-content:center;cursor:pointer;position:relative;transition:background .15s;}
+.tb-notif:hover{background:var(--surf3);}
+.notif-dot{position:absolute;top:7px;right:7px;width:7px;height:7px;border-radius:50%;background:var(--acc2);border:2px solid var(--surf);}
+.tb-avatar{width:34px;height:34px;border-radius:50%;border:2px solid var(--acc);background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:var(--acc);cursor:pointer;}
+.tb-btn{background:var(--acc);color:var(--dark);border:none;border-radius:9px;padding:8px 18px;font-family:var(--fd);font-size:15px;letter-spacing:1.5px;cursor:pointer;transition:opacity .15s,transform .1s;}
+.tb-btn:hover{opacity:.88;}
+.tb-btn:active{transform:scale(.97);}
+
+/* ── SIDEBAR NAV ── */
+.nav-section-label{font-size:9px;text-transform:uppercase;letter-spacing:2px;color:var(--txt3);padding:18px 18px 6px;font-weight:600;}
+.nav-item{display:flex;align-items:center;gap:11px;padding:9px 18px;font-size:13px;color:var(--txt2);cursor:pointer;border-left:2px solid transparent;transition:all .15s;user-select:none;}
+.nav-item:hover{background:rgba(255,255,255,.04);color:var(--txt);}
+.nav-item.active{color:var(--acc);border-left-color:var(--acc);background:rgba(200,255,0,.05);}
+.nav-icon-wrap{width:20px;text-align:center;font-size:14px;}
+.nav-badge{margin-left:auto;background:var(--acc2);color:#fff;font-size:9px;font-weight:700;padding:2px 7px;border-radius:20px;}
+.nav-badge.green{background:var(--acc);color:var(--dark);}
+.sidebar-footer{margin-top:auto;padding:14px;}
+.sidebar-user{background:var(--surf2);border-radius:12px;padding:12px;display:flex;align-items:center;gap:10px;cursor:pointer;border:1px solid var(--bdr);}
+.sidebar-user:hover{background:var(--surf3);}
+.su-name{font-size:13px;font-weight:500;}
+.su-goal{font-size:10px;color:var(--acc);letter-spacing:.5px;margin-top:1px;}
+
+/* ── PAGES ── */
+.page{position:absolute;inset:0;overflow-y:auto;display:none;flex-direction:column;animation:fadeIn .2s ease;}
+.page.active{display:flex;}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+.page-header{padding:28px 30px 0;display:flex;align-items:flex-start;justify-content:space-between;flex-shrink:0;}
+.page-title{font-family:var(--fd);font-size:34px;letter-spacing:1px;}
+.page-sub{font-size:12px;color:var(--txt2);margin-top:3px;}
+.page-content{padding:20px 30px 30px;display:flex;flex-direction:column;gap:18px;flex:1;}
+
+/* ── CARDS ── */
+.card{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rad-lg);padding:20px;}
+.card-sm{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rad);padding:14px 16px;}
+.card-hd{display:flex;align-items:center;justify-content:space-between;margin-bottom:14px;}
+.card-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txt2);font-weight:600;}
+.card-link{font-size:11px;color:var(--acc);cursor:pointer;text-transform:uppercase;letter-spacing:.8px;}
+.card-link:hover{text-decoration:underline;}
+
+/* ── KPI ROW ── */
+.kpi-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.kpi{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rad-lg);padding:16px 18px;}
+.kpi-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--txt2);margin-bottom:6px;}
+.kpi-val{font-family:var(--fd);font-size:28px;line-height:1;}
+.kpi-unit{font-family:var(--fb);font-size:13px;color:var(--txt2);}
+.kpi-delta{font-size:11px;margin-top:4px;}
+.up{color:var(--acc);}.down{color:var(--acc2);}
+
+/* ── RANGE TABS ── */
+.range-tabs{display:flex;background:var(--surf2);border-radius:8px;border:1px solid var(--bdr2);overflow:hidden;}
+.range-tab{padding:6px 14px;font-size:11px;font-weight:600;text-transform:uppercase;letter-spacing:.8px;color:var(--txt2);cursor:pointer;transition:all .15s;}
+.range-tab.active{background:var(--acc);color:var(--dark);}
+
+/* ── CALORIE RING ── */
+.ring-section{display:flex;align-items:center;gap:24px;}
+.ring-wrap{position:relative;flex-shrink:0;}
+.ring-wrap svg{display:block;}
+.ring-center{position:absolute;inset:0;display:flex;flex-direction:column;align-items:center;justify-content:center;text-align:center;}
+.ring-num{font-family:var(--fd);font-size:30px;line-height:1;}
+.ring-lbl{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:1px;margin-top:2px;}
+.ring-goal{font-size:10px;color:var(--txt3);margin-top:1px;}
+
+/* ── MACRO BARS ── */
+.macro-list{flex:1;display:flex;flex-direction:column;gap:11px;}
+.macro-hd{display:flex;justify-content:space-between;margin-bottom:4px;}
+.macro-name{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--txt2);}
+.macro-val{font-size:10px;font-weight:500;}
+.bar-track{height:5px;background:var(--surf3);border-radius:3px;overflow:hidden;}
+.bar-fill{height:100%;border-radius:3px;}
+
+/* ── WEEK BARS ── */
+.week-bars{display:flex;gap:6px;margin-top:12px;align-items:flex-end;height:50px;}
+.wday{flex:1;display:flex;flex-direction:column;align-items:center;gap:4px;}
+.wday-bar{width:100%;border-radius:3px 3px 0 0;min-height:4px;}
+.wday-lbl{font-size:8px;color:var(--txt3);text-transform:uppercase;}
+
+/* ── MEAL ROWS ── */
+.meal-row{background:var(--surf2);border:1px solid var(--bdr);border-radius:var(--rad);padding:11px 14px;display:flex;align-items:center;gap:12px;cursor:pointer;transition:background .15s;}
+.meal-row:hover{background:var(--surf3);}
+.meal-icon{width:36px;height:36px;border-radius:10px;background:var(--surf3);display:flex;align-items:center;justify-content:center;font-size:17px;flex-shrink:0;}
+.meal-info{flex:1;}
+.meal-nm{font-size:13px;font-weight:500;}
+.meal-tm{font-size:10px;color:var(--txt2);margin-top:2px;}
+.meal-macros-mini{display:flex;gap:10px;}
+.m-mini{font-size:10px;color:var(--txt2);}
+.m-mini span{color:var(--txt);font-weight:500;}
+.meal-kcal{font-family:var(--fd);font-size:20px;color:var(--acc);margin-left:10px;}
+
+/* ── EXPIRY ITEMS ── */
+.exp-row{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:10px 14px;display:flex;align-items:center;gap:10px;}
+.exp-dot{width:8px;height:8px;border-radius:50%;flex-shrink:0;}
+.exp-name{font-size:13px;font-weight:500;}
+.exp-cat{font-size:10px;color:var(--txt2);margin-top:1px;}
+.exp-pill{padding:3px 10px;border-radius:20px;font-size:10px;font-weight:600;margin-left:auto;white-space:nowrap;}
+.pill-r{background:rgba(255,77,0,.12);color:#FF6040;border:1px solid rgba(255,77,0,.25);}
+.pill-o{background:rgba(255,160,32,.12);color:#FFA030;border:1px solid rgba(255,160,32,.25);}
+.pill-g{background:rgba(200,255,0,.1);color:#9ABF00;border:1px solid rgba(200,255,0,.2);}
+
+/* ── PANTRY TABLE ── */
+.ptable{width:100%;border-collapse:collapse;}
+.ptable th{font-size:9px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt3);padding:10px 14px;text-align:left;border-bottom:1px solid var(--bdr);font-weight:600;}
+.ptable td{padding:12px 14px;font-size:13px;border-bottom:1px solid var(--bdr);vertical-align:middle;}
+.ptable tr:last-child td{border-bottom:none;}
+.ptable tr:hover td{background:rgba(255,255,255,.02);}
+.cat-badge{padding:3px 10px;border-radius:20px;font-size:9px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;white-space:nowrap;}
+.cb-protein{background:rgba(0,212,255,.1);color:#00B8E0;border:1px solid rgba(0,212,255,.2);}
+.cb-produce{background:rgba(200,255,0,.1);color:#8FAF00;border:1px solid rgba(200,255,0,.2);}
+.cb-dairy{background:rgba(255,200,80,.12);color:#CC9020;border:1px solid rgba(255,200,80,.2);}
+.cb-pantry{background:rgba(160,130,255,.1);color:#9080DD;border:1px solid rgba(160,130,255,.2);}
+.cb-spice{background:rgba(255,100,100,.1);color:#CC5050;border:1px solid rgba(255,100,100,.2);}
+.cb-other{background:var(--surf3);color:var(--txt2);border:1px solid var(--bdr2);}
+.qty-input{background:var(--surf3);border:1px solid var(--bdr2);border-radius:6px;padding:4px 8px;font-size:12px;color:var(--txt);width:75px;font-family:var(--fb);}
+.qty-input:focus{outline:none;border-color:var(--acc);}
+.tr-del{background:none;border:none;color:var(--txt3);cursor:pointer;font-size:16px;padding:4px 8px;border-radius:6px;transition:all .15s;}
+.tr-del:hover{color:var(--acc2);background:rgba(255,77,0,.1);}
+
+/* ── FILTER CHIPS ── */
+.filter-bar{display:flex;gap:7px;flex-wrap:wrap;}
+.fchip{padding:6px 14px;border-radius:20px;font-size:11px;font-weight:500;border:1px solid var(--bdr2);background:var(--surf2);color:var(--txt2);cursor:pointer;transition:all .15s;white-space:nowrap;}
+.fchip.active{background:var(--acc);color:var(--dark);border-color:var(--acc);}
+.fchip:hover:not(.active){background:var(--surf3);color:var(--txt);}
+
+/* ── MEAL CARDS (Suggestions) ── */
+.meal-cards-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.mcard{background:var(--surf);border:1px solid var(--bdr);border-radius:var(--rad-xl);overflow:hidden;transition:border-color .2s;}
+.mcard:hover{border-color:var(--bdr2);}
+.mcard-header{background:var(--surf2);padding:18px;}
+.mcard-name{font-family:var(--fd);font-size:22px;letter-spacing:1px;line-height:1.15;margin-bottom:8px;}
+.mcard-kcal-badge{display:inline-block;background:var(--acc);color:var(--dark);padding:4px 12px;border-radius:20px;font-weight:700;font-size:12px;}
+.mcard-body{padding:16px;display:flex;flex-direction:column;gap:12px;}
+.tag-row{display:flex;gap:5px;flex-wrap:wrap;}
+.tag{background:var(--surf3);color:var(--txt2);padding:3px 9px;border-radius:20px;font-size:9px;text-transform:uppercase;letter-spacing:.6px;}
+.macro-pill-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;}
+.macro-pill{background:var(--surf3);border-radius:9px;padding:9px;text-align:center;}
+.macro-pill-val{font-family:var(--fd);font-size:20px;line-height:1;}
+.macro-pill-lbl{font-size:8px;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+.mcard-instructions{font-size:11px;color:var(--txt2);line-height:1.65;}
+.mcard-missing{background:rgba(255,77,0,.08);border:1px solid rgba(255,77,0,.2);border-radius:9px;padding:8px 12px;font-size:11px;color:#FF7A50;}
+.log-btn{width:100%;background:var(--surf3);border:1px solid rgba(200,255,0,.25);color:var(--acc);border-radius:10px;padding:11px;font-family:var(--fd);font-size:15px;letter-spacing:1.5px;cursor:pointer;transition:all .15s;}
+.log-btn:hover:not(:disabled){background:var(--acc);color:var(--dark);border-color:var(--acc);}
+.log-btn:disabled{background:rgba(200,255,0,.15);color:var(--acc);border-color:rgba(200,255,0,.3);cursor:default;opacity:.8;}
+
+/* ── GROCERY ── */
+.grocery-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px;}
+.g-section-title{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txt2);margin-bottom:10px;font-weight:600;}
+.g-list{display:flex;flex-direction:column;gap:7px;}
+.g-item{background:var(--surf2);border:1px solid var(--bdr);border-radius:10px;padding:11px 14px;display:flex;align-items:center;gap:10px;}
+.g-check{width:18px;height:18px;border-radius:5px;border:1.5px solid var(--txt3);cursor:pointer;flex-shrink:0;display:flex;align-items:center;justify-content:center;transition:all .15s;}
+.g-check.checked{background:var(--acc);border-color:var(--acc);}
+.g-check.checked::after{content:'';width:4px;height:8px;border:2px solid var(--dark);border-top:none;border-left:none;transform:rotate(45deg) translateY(-1px);display:block;}
+.g-name{font-size:13px;font-weight:500;flex:1;}
+.g-reason{font-size:10px;margin-top:1px;}
+.g-qty{font-size:11px;color:var(--txt3);}
+.g-item.done .g-name{text-decoration:line-through;color:var(--txt2);}
+
+/* ── INSIGHTS ── */
+.insights-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:16px;}
+.ins-num{font-family:var(--fd);font-size:44px;line-height:1;}
+.ins-label{font-size:10px;text-transform:uppercase;letter-spacing:1.2px;color:var(--txt2);margin-top:3px;}
+.ins-desc{font-size:12px;color:var(--txt2);margin-top:10px;line-height:1.65;}
+.bar-row-h{display:flex;align-items:center;gap:10px;margin-bottom:5px;}
+.bar-lbl-h{font-size:10px;color:var(--txt2);width:28px;flex-shrink:0;}
+.bar-track-h{flex:1;height:7px;background:var(--surf3);border-radius:4px;overflow:hidden;}
+.bar-fill-h{height:100%;border-radius:4px;}
+.bar-val-h{font-size:10px;color:var(--txt);width:36px;text-align:right;flex-shrink:0;}
+.ai-stats-row{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;}
+.ai-stat{background:var(--surf2);border-radius:10px;padding:14px;text-align:center;}
+.ai-stat-num{font-family:var(--fd);font-size:32px;line-height:1;}
+.ai-stat-lbl{font-size:9px;text-transform:uppercase;letter-spacing:.8px;color:var(--txt2);margin-top:4px;}
+
+/* ── CALORIE CHART ── */
+.kcal-chart{display:flex;gap:10px;align-items:flex-end;height:140px;padding-top:10px;}
+.kcal-day{flex:1;display:flex;flex-direction:column;align-items:center;gap:5px;height:100%;}
+.kcal-bar-wrap{flex:1;display:flex;align-items:flex-end;width:100%;}
+.kcal-bar{width:100%;border-radius:5px 5px 0 0;transition:height .5s ease;}
+.kcal-day-lbl{font-size:9px;color:var(--txt3);text-transform:uppercase;}
+.kcal-day-val{font-size:8px;color:var(--txt2);}
+
+/* ── SETTINGS PAGE ── */
+.settings-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+.settings-section{font-size:10px;text-transform:uppercase;letter-spacing:1.5px;color:var(--txt2);margin-bottom:12px;font-weight:600;}
+.settings-row{display:flex;align-items:center;justify-content:space-between;padding:12px 0;border-bottom:1px solid var(--bdr);}
+.settings-row:last-child{border-bottom:none;}
+.settings-label{font-size:13px;font-weight:500;}
+.settings-sub{font-size:11px;color:var(--txt2);margin-top:2px;}
+.toggle{width:42px;height:24px;border-radius:12px;background:var(--surf3);border:1px solid var(--bdr2);cursor:pointer;position:relative;transition:background .2s;flex-shrink:0;}
+.toggle.on{background:var(--acc);}
+.toggle::after{content:'';position:absolute;top:3px;left:3px;width:16px;height:16px;border-radius:50%;background:var(--txt2);transition:transform .2s,background .2s;}
+.toggle.on::after{transform:translateX(18px);background:var(--dark);}
+.settings-input{background:var(--surf3);border:1px solid var(--bdr2);border-radius:8px;padding:7px 12px;font-size:13px;color:var(--txt);font-family:var(--fb);width:120px;}
+.settings-input:focus{outline:none;border-color:var(--acc);}
+.settings-select{background:var(--surf3);border:1px solid var(--bdr2);border-radius:8px;padding:7px 12px;font-size:13px;color:var(--txt);font-family:var(--fb);cursor:pointer;}
+.settings-select:focus{outline:none;border-color:var(--acc);}
+.goal-chip-row{display:flex;gap:8px;flex-wrap:wrap;}
+.goal-chip{padding:7px 16px;border-radius:9px;font-size:12px;font-weight:500;border:1px solid var(--bdr2);background:var(--surf2);color:var(--txt2);cursor:pointer;transition:all .15s;}
+.goal-chip.active{background:var(--acc);color:var(--dark);border-color:var(--acc);}
+
+/* ── NOTIFICATIONS PANEL ── */
+.notif-overlay{position:fixed;inset:0;z-index:200;pointer-events:none;}
+.notif-panel{position:absolute;top:60px;right:20px;width:340px;background:var(--surf);border:1px solid var(--bdr2);border-radius:var(--rad-lg);overflow:hidden;pointer-events:all;display:none;animation:slideDown .2s ease;}
+@keyframes slideDown{from{opacity:0;transform:translateY(-8px);}to{opacity:1;transform:translateY(0);}}
+.notif-panel.open{display:block;}
+.notif-panel-hd{padding:14px 18px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;}
+.notif-panel-title{font-size:13px;font-weight:600;}
+.notif-mark{font-size:11px;color:var(--acc);cursor:pointer;}
+.notif-item{padding:13px 18px;border-bottom:1px solid var(--bdr);display:flex;gap:12px;align-items:flex-start;cursor:pointer;transition:background .15s;}
+.notif-item:hover{background:var(--surf2);}
+.notif-item:last-child{border-bottom:none;}
+.notif-icon{width:32px;height:32px;border-radius:9px;display:flex;align-items:center;justify-content:center;font-size:15px;flex-shrink:0;}
+.ni-warn{background:rgba(255,77,0,.15);}
+.ni-meal{background:rgba(200,255,0,.12);}
+.ni-stock{background:rgba(0,212,255,.12);}
+.notif-text{font-size:12px;color:var(--txt);line-height:1.5;}
+.notif-time{font-size:10px;color:var(--txt3);margin-top:3px;}
+.notif-unread{width:7px;height:7px;border-radius:50%;background:var(--acc);margin-top:4px;flex-shrink:0;}
+
+/* ── ADD ITEM MODAL ── */
+.modal-overlay{position:fixed;inset:0;background:rgba(0,0,0,.7);z-index:300;display:none;align-items:center;justify-content:center;}
+.modal-overlay.open{display:flex;}
+.modal{background:var(--surf);border:1px solid var(--bdr2);border-radius:var(--rad-xl);width:480px;overflow:hidden;animation:modalIn .2s ease;}
+@keyframes modalIn{from{opacity:0;transform:scale(.96);}to{opacity:1;transform:scale(1);}}
+.modal-hd{padding:20px 24px;border-bottom:1px solid var(--bdr);display:flex;justify-content:space-between;align-items:center;}
+.modal-title{font-family:var(--fd);font-size:24px;letter-spacing:1px;}
+.modal-close{background:none;border:none;color:var(--txt2);font-size:22px;cursor:pointer;line-height:1;padding:0;}
+.modal-close:hover{color:var(--txt);}
+.modal-body{padding:24px;}
+.form-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px;}
+.form-row.full{grid-template-columns:1fr;}
+.form-group{display:flex;flex-direction:column;gap:5px;}
+.form-label{font-size:10px;text-transform:uppercase;letter-spacing:1px;color:var(--txt2);font-weight:600;}
+.form-input{background:var(--surf2);border:1px solid var(--bdr2);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--txt);font-family:var(--fb);transition:border-color .15s;}
+.form-input:focus{outline:none;border-color:var(--acc);}
+.form-select{background:var(--surf2);border:1px solid var(--bdr2);border-radius:9px;padding:10px 13px;font-size:13px;color:var(--txt);font-family:var(--fb);cursor:pointer;appearance:none;}
+.form-select:focus{outline:none;border-color:var(--acc);}
+.modal-footer{padding:16px 24px;border-top:1px solid var(--bdr);display:flex;gap:10px;justify-content:flex-end;}
+.btn-cancel{background:none;border:1px solid var(--bdr2);border-radius:9px;padding:9px 20px;font-size:13px;color:var(--txt2);cursor:pointer;transition:all .15s;}
+.btn-cancel:hover{background:var(--surf2);}
+.btn-save{background:var(--acc);color:var(--dark);border:none;border-radius:9px;padding:9px 20px;font-family:var(--fd);font-size:16px;letter-spacing:1.5px;cursor:pointer;transition:opacity .15s;}
+.btn-save:hover{opacity:.88;}
+
+/* ── LOADING SPINNER ── */
+.loading-overlay{position:absolute;inset:0;background:rgba(10,10,10,.8);z-index:50;display:none;align-items:center;justify-content:center;flex-direction:column;gap:16px;}
+.loading-overlay.show{display:flex;}
+.spinner{width:44px;height:44px;border:3px solid var(--surf3);border-top-color:var(--acc);border-radius:50%;animation:spin .8s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+.loading-msg{font-family:var(--fd);font-size:18px;letter-spacing:2px;color:var(--acc);}
+.loading-sub{font-size:11px;color:var(--txt2);}
+
+/* ── TOAST ── */
+.toast-wrap{position:fixed;bottom:24px;right:24px;z-index:500;display:flex;flex-direction:column;gap:8px;pointer-events:none;}
+.toast{background:var(--surf);border:1px solid var(--bdr2);border-left:3px solid var(--acc);border-radius:10px;padding:12px 18px;font-size:13px;color:var(--txt);pointer-events:all;animation:toastIn .3s ease;min-width:260px;}
+.toast.error{border-left-color:var(--acc2);}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px);}to{opacity:1;transform:translateX(0);}}
+
+/* ── PROFILE PAGE ── */
+.profile-header{display:flex;align-items:center;gap:24px;margin-bottom:24px;}
+.profile-avatar{width:80px;height:80px;border-radius:50%;border:3px solid var(--acc);background:var(--surf2);display:flex;align-items:center;justify-content:center;font-family:var(--fd);font-size:32px;color:var(--acc);}
+.profile-name-big{font-family:var(--fd);font-size:30px;}
+.profile-email{font-size:13px;color:var(--txt2);margin-top:3px;}
+.profile-chips{display:flex;gap:8px;margin-top:8px;}
+.pchip{padding:4px 12px;border-radius:20px;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.5px;}
+.pchip-acc{background:rgba(200,255,0,.12);color:var(--acc);border:1px solid rgba(200,255,0,.25);}
+.pchip-goal{background:rgba(0,212,255,.1);color:var(--acc3);border:1px solid rgba(0,212,255,.2);}
+
+/* ── MEAL LOG MODAL ── */
+.log-overlay{position:fixed;inset:0;background:rgba(0,0,0,.75);z-index:300;display:none;align-items:center;justify-content:center;}
+.log-overlay.open{display:flex;}
+.log-modal{background:var(--surf);border:1px solid var(--bdr2);border-radius:var(--rad-xl);width:420px;overflow:hidden;animation:modalIn .2s ease;}
+.log-modal-hd{padding:20px 24px 14px;border-bottom:1px solid var(--bdr);}
+.log-modal-meal{font-family:var(--fd);font-size:22px;letter-spacing:1px;}
+.log-modal-kcal{font-size:12px;color:var(--acc);margin-top:3px;}
+.log-modal-body{padding:20px 24px;}
+.log-macro-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-bottom:16px;}
+.log-macro{background:var(--surf2);border-radius:9px;padding:10px;text-align:center;}
+.log-macro-val{font-family:var(--fd);font-size:22px;}
+.log-macro-lbl{font-size:9px;color:var(--txt2);text-transform:uppercase;letter-spacing:.8px;margin-top:2px;}
+.log-info{font-size:12px;color:var(--txt2);line-height:1.6;margin-bottom:16px;}
+.log-footer{padding:0 24px 20px;display:flex;gap:10px;}
+
+/* ── NUTRITION PAGE ── */
+.nutrition-grid{display:grid;grid-template-columns:1fr 1fr;gap:18px;}
+
+/* ── SCROLLBAR ── */
+::-webkit-scrollbar{width:5px;}
+::-webkit-scrollbar-track{background:transparent;}
+::-webkit-scrollbar-thumb{background:var(--surf3);border-radius:3px;}
+::-webkit-scrollbar-thumb:hover{background:var(--surf4);}
+
+/* ── MISC ── */
+.two-col{display:grid;grid-template-columns:1fr 320px;gap:18px;}
+.divider{height:1px;background:var(--bdr);}
+.text-acc{color:var(--acc);}
+.accent-card{background:rgba(200,255,0,.05);border-color:rgba(200,255,0,.2);}
+.pulse{animation:pulseDot 2s infinite;}
+@keyframes pulseDot{0%,100%{opacity:1}50%{opacity:.4}}
+</style>
+</head>
+<body>
+
+<!-- TOAST CONTAINER -->
+<div class="toast-wrap" id="toastWrap"></div>
+
+<!-- NOTIFICATIONS PANEL -->
+<div class="notif-overlay" id="notifOverlay" onclick="closeNotifOnOverlay(event)">
+  <div class="notif-panel" id="notifPanel">
+    <div class="notif-panel-hd">
+      <div class="notif-panel-title">Notifications</div>
+      <div class="notif-mark" onclick="markAllRead()">Mark all read</div>
+    </div>
+    <div class="notif-item" onclick="nav('pantry')">
+      <div class="notif-icon ni-warn">⚠</div>
+      <div style="flex:1">
+        <div class="notif-text"><strong>Chicken Breast</strong> expires today. Use it in today's meal.</div>
+        <div class="notif-time">Just now</div>
+      </div>
+      <div class="notif-unread"></div>
+    </div>
+    <div class="notif-item" onclick="nav('meals')">
+      <div class="notif-icon ni-meal">⚡</div>
+      <div style="flex:1">
+        <div class="notif-text">3 new meal suggestions ready. Tap to view.</div>
+        <div class="notif-time">2 min ago</div>
+      </div>
+      <div class="notif-unread"></div>
+    </div>
+    <div class="notif-item" onclick="nav('grocery')">
+      <div class="notif-icon ni-stock">📦</div>
+      <div style="flex:1">
+        <div class="notif-text"><strong>Brown Rice</strong> is out of stock. Added to grocery list.</div>
+        <div class="notif-time">1 hr ago</div>
+      </div>
+      <div class="notif-unread"></div>
+    </div>
+    <div class="notif-item">
+      <div class="notif-icon ni-meal">🍽</div>
+      <div style="flex:1">
+        <div class="notif-text">You're 700 kcal under your goal. Tap to get a meal suggestion.</div>
+        <div class="notif-time">7:00 PM</div>
+      </div>
+    </div>
+    <div class="notif-item" onclick="nav('pantry')">
+      <div class="notif-icon ni-warn">⚠</div>
+      <div style="flex:1">
+        <div class="notif-text"><strong>Spinach</strong> and <strong>Banana</strong> expire in 2 days.</div>
+        <div class="notif-time">8:00 AM</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- ADD ITEM MODAL -->
+<div class="modal-overlay" id="addModal" onclick="closeModalOnOverlay(event,'addModal')">
+  <div class="modal">
+    <div class="modal-hd">
+      <div class="modal-title">ADD PANTRY ITEM</div>
+      <button class="modal-close" onclick="closeModal('addModal')">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-row full"><div class="form-group">
+        <div class="form-label">Item Name</div>
+        <input class="form-input" type="text" placeholder="e.g. Chicken Breast" id="add-name">
+      </div></div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Quantity</div>
+          <input class="form-input" type="number" placeholder="e.g. 500" id="add-qty">
+        </div>
+        <div class="form-group">
+          <div class="form-label">Unit</div>
+          <select class="form-select" id="add-unit">
+            <option>g</option><option>kg</option><option>ml</option><option>l</option>
+            <option>cups</option><option>pieces</option><option>tsp</option><option>tbsp</option>
+          </select>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <div class="form-label">Category</div>
+          <select class="form-select" id="add-cat">
+            <option>produce</option><option>protein</option><option>dairy</option>
+            <option>pantry</option><option>spice</option><option>other</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <div class="form-label">Expiry Date</div>
+          <input class="form-input" type="date" id="add-expiry">
+        </div>
+      </div>
+      <div class="form-row full"><div class="form-group">
+        <div class="form-label">Notes (optional)</div>
+        <input class="form-input" type="text" placeholder="e.g. lactose free" id="add-notes">
+      </div></div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-cancel" onclick="closeModal('addModal')">Cancel</button>
+      <button class="btn-save" onclick="saveItem()">SAVE ITEM</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOG MEAL MODAL -->
+<div class="log-overlay" id="logModal">
+  <div class="log-modal">
+    <div class="modal-hd" style="padding:20px 24px 14px;border-bottom:1px solid var(--bdr);">
+      <div>
+        <div class="log-modal-meal" id="logMealName">Garlic Egg Fried Rice</div>
+        <div class="log-modal-kcal" id="logMealKcal">624 kcal</div>
+      </div>
+      <button class="modal-close" onclick="closeModal('logModal')">✕</button>
+    </div>
+    <div class="log-modal-body">
+      <div class="log-macro-grid">
+        <div class="log-macro"><div class="log-macro-val text-acc" id="logP">42g</div><div class="log-macro-lbl">Protein</div></div>
+        <div class="log-macro"><div class="log-macro-val" style="color:var(--acc3)" id="logC">78g</div><div class="log-macro-lbl">Carbs</div></div>
+        <div class="log-macro"><div class="log-macro-val" style="color:var(--acc2)" id="logF">14g</div><div class="log-macro-lbl">Fat</div></div>
+      </div>
+      <div class="log-info">This will be logged to your meal history and update your daily calorie ring. Pantry quantities will be deducted automatically.</div>
+      <div style="display:flex;align-items:center;gap:10px;background:var(--surf2);border-radius:10px;padding:12px 14px;margin-bottom:4px;">
+        <span style="font-size:13px;flex:1;">Add missing ingredients to grocery list?</span>
+        <button class="goal-chip active" style="padding:6px 14px;font-size:12px;" id="missYes" onclick="setMissing(true)">Yes</button>
+        <button class="goal-chip" style="padding:6px 14px;font-size:12px;" id="missNo" onclick="setMissing(false)">No</button>
+      </div>
+    </div>
+    <div class="log-footer">
+      <button class="btn-cancel" onclick="closeModal('logModal')" style="flex:1;">Cancel</button>
+      <button class="btn-save" style="flex:2;" onclick="confirmLog()">LOG MEAL</button>
+    </div>
+  </div>
+</div>
+
+<!-- LOADING OVERLAY -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="spinner"></div>
+  <div class="loading-msg">GENERATING...</div>
+  <div class="loading-sub">Checking your pantry with AI</div>
+</div>
+
+<!-- MAIN APP -->
+<div class="app">
+
+  <!-- TOPBAR -->
+  <div class="topbar">
+    <div class="brand" onclick="nav('dashboard')">PrepPAL</div>
+    <div class="tb-search">
+      <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style="opacity:.4"><circle cx="6.5" cy="6.5" r="5" stroke="white" stroke-width="1.5"/><line x1="11" y1="11" x2="14" y2="14" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+      Search pantry, meals...
+    </div>
+    <button class="tb-btn" onclick="triggerSuggest()">+ SUGGEST MEAL</button>
+    <div class="tb-notif" id="notifBtn" onclick="toggleNotif()">
+      <svg width="16" height="16" viewBox="0 0 24 24" fill="none"><path d="M18 8a6 6 0 10-12 0c0 7-3 9-3 9h18s-3-2-3-9M13.73 21a2 2 0 01-3.46 0" stroke="white" stroke-width="1.5" stroke-linecap="round"/></svg>
+      <div class="notif-dot pulse"></div>
+    </div>
+    <div class="tb-avatar" onclick="nav('profile')">JS</div>
+  </div>
+
+  <!-- SIDEBAR -->
+  <div class="sidebar">
+    <div class="nav-section-label">Overview</div>
+    <div class="nav-item active" id="nav-dashboard" onclick="nav('dashboard')">
+      <span class="nav-icon-wrap">◎</span> Dashboard
+    </div>
+    <div class="nav-item" id="nav-nutrition" onclick="nav('nutrition')">
+      <span class="nav-icon-wrap">◈</span> Nutrition
+    </div>
+    <div class="nav-section-label">Food</div>
+    <div class="nav-item" id="nav-pantry" onclick="nav('pantry')">
+      <span class="nav-icon-wrap">▣</span> Pantry
+    </div>
+    <div class="nav-item" id="nav-meals" onclick="nav('meals')">
+      <span class="nav-icon-wrap">⚡</span> Meal Suggestions
+      <div class="nav-badge green" id="mealsBadge">3</div>
+    </div>
+    <div class="nav-item" id="nav-grocery" onclick="nav('grocery')">
+      <span class="nav-icon-wrap">☑</span> Grocery List
+      <div class="nav-badge" id="groceryBadge">7</div>
+    </div>
+    <div class="nav-section-label">Reports</div>
+    <div class="nav-item" id="nav-insights" onclick="nav('insights')">
+      <span class="nav-icon-wrap">◇</span> Weekly Insights
+    </div>
+    <div class="nav-section-label">Account</div>
+    <div class="nav-item" id="nav-settings" onclick="nav('settings')">
+      <span class="nav-icon-wrap">⚙</span> Settings
+    </div>
+    <div class="nav-item" id="nav-profile" onclick="nav('profile')">
+      <span class="nav-icon-wrap">👤</span> Profile
+    </div>
+    <div class="sidebar-footer">
+      <div class="sidebar-user" onclick="nav('profile')">
+        <div class="tb-avatar" style="flex-shrink:0;">JS</div>
+        <div>
+          <div class="su-name">Jake Stevens</div>
+          <div class="su-goal">Bulking · 2,800 kcal</div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- MAIN AREA -->
+  <div class="main-area">
+
+    <!-- ===== DASHBOARD ===== -->
+    <div class="page active" id="page-dashboard">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Good morning, Jake 👋</div>
+          <div class="page-sub">Monday, May 4, 2026 · Bulking · 2,800 kcal goal</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="range-tabs">
+            <div class="range-tab active" onclick="setRangeTab(this)">Today</div>
+            <div class="range-tab" onclick="setRangeTab(this)">Week</div>
+            <div class="range-tab" onclick="setRangeTab(this)">Month</div>
+          </div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-label">Consumed</div><div class="kpi-val">1,648 <span class="kpi-unit">kcal</span></div><div class="kpi-delta up">▲ 59% of goal</div></div>
+          <div class="kpi"><div class="kpi-label">Remaining</div><div class="kpi-val">1,152 <span class="kpi-unit">kcal</span></div><div class="kpi-delta" style="color:var(--txt2);">2 more meals</div></div>
+          <div class="kpi"><div class="kpi-label">Protein</div><div class="kpi-val">112 <span class="kpi-unit">g</span></div><div class="kpi-delta up">▲ 72% of 155g</div></div>
+          <div class="kpi"><div class="kpi-label">Pantry Items</div><div class="kpi-val" id="pantryCount">18 <span class="kpi-unit">items</span></div><div class="kpi-delta down">▼ 3 expiring soon</div></div>
+        </div>
+
+        <div class="two-col">
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card">
+              <div class="card-hd"><div class="card-title">Daily Nutrition</div><div class="card-link" onclick="openModal('addModal')">+ log meal</div></div>
+              <div class="ring-section">
+                <div class="ring-wrap" style="width:120px;height:120px;">
+                  <svg width="120" height="120" viewBox="0 0 120 120">
+                    <circle cx="60" cy="60" r="48" fill="none" stroke="#1C1C1C" stroke-width="10" transform="rotate(-90 60 60)"/>
+                    <circle id="dashRing" cx="60" cy="60" r="48" fill="none" stroke="#C8FF00" stroke-width="10" stroke-linecap="round" transform="rotate(-90 60 60)" stroke-dasharray="301.6" stroke-dashoffset="123"/>
+                  </svg>
+                  <div class="ring-center">
+                    <div class="ring-num" id="dashKcal">1,648</div>
+                    <div class="ring-lbl">kcal</div>
+                    <div class="ring-goal">of 2,800</div>
+                  </div>
+                </div>
+                <div class="macro-list">
+                  <div>
+                    <div class="macro-hd"><span class="macro-name">Protein</span><span class="macro-val" id="dashP">112g / 155g</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:72%;background:var(--acc);"></div></div>
+                  </div>
+                  <div>
+                    <div class="macro-hd"><span class="macro-name">Carbohydrates</span><span class="macro-val" id="dashC">198g / 260g</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:55%;background:var(--acc3);"></div></div>
+                  </div>
+                  <div>
+                    <div class="macro-hd"><span class="macro-name">Fat</span><span class="macro-val" id="dashF">44g / 72g</span></div>
+                    <div class="bar-track"><div class="bar-fill" style="width:38%;background:var(--acc2);"></div></div>
+                  </div>
+                  <div class="week-bars">
+                    <div class="wday"><div class="wday-bar" style="height:65%;background:var(--surf3);"></div><div class="wday-lbl">M</div></div>
+                    <div class="wday"><div class="wday-bar" style="height:82%;background:var(--surf3);"></div><div class="wday-lbl">T</div></div>
+                    <div class="wday"><div class="wday-bar" style="height:74%;background:var(--surf3);"></div><div class="wday-lbl">W</div></div>
+                    <div class="wday"><div class="wday-bar" style="height:91%;background:var(--surf3);"></div><div class="wday-lbl">T</div></div>
+                    <div class="wday"><div class="wday-bar" style="height:60%;background:var(--surf3);"></div><div class="wday-lbl">F</div></div>
+                    <div class="wday"><div class="wday-bar" style="height:78%;background:var(--surf3);"></div><div class="wday-lbl">S</div></div>
+                    <div class="wday"><div class="wday-bar" style="height:59%;background:rgba(200,255,0,.4);"></div><div class="wday-lbl" style="color:var(--acc);">S</div></div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="card">
+              <div class="card-hd"><div class="card-title">Today's Meals</div><div class="card-link" onclick="nav('meals')">get suggestions →</div></div>
+              <div id="dashMealList" style="display:flex;flex-direction:column;gap:8px;">
+                <div class="meal-row" onclick="nav('meals')">
+                  <div class="meal-icon">🥣</div>
+                  <div class="meal-info"><div class="meal-nm">Oat & banana bowl</div><div class="meal-tm">8:22 AM · AI suggestion</div></div>
+                  <div class="meal-macros-mini"><div class="m-mini">P <span>28g</span></div><div class="m-mini">C <span>62g</span></div><div class="m-mini">F <span>8g</span></div></div>
+                  <div class="meal-kcal">412</div>
+                </div>
+                <div class="meal-row" onclick="nav('meals')">
+                  <div class="meal-icon">🥗</div>
+                  <div class="meal-info"><div class="meal-nm">Grilled chicken salad</div><div class="meal-tm">12:45 PM · AI suggestion</div></div>
+                  <div class="meal-macros-mini"><div class="m-mini">P <span>55g</span></div><div class="m-mini">C <span>24g</span></div><div class="m-mini">F <span>14g</span></div></div>
+                  <div class="meal-kcal">538</div>
+                </div>
+                <div class="meal-row" onclick="nav('meals')">
+                  <div class="meal-icon">🍚</div>
+                  <div class="meal-info"><div class="meal-nm">Brown rice & eggs</div><div class="meal-tm">4:00 PM · Manual entry</div></div>
+                  <div class="meal-macros-mini"><div class="m-mini">P <span>29g</span></div><div class="m-mini">C <span>112g</span></div><div class="m-mini">F <span>22g</span></div></div>
+                  <div class="meal-kcal">698</div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div style="display:flex;flex-direction:column;gap:16px;">
+            <div class="card">
+              <div class="card-hd"><div class="card-title">Expiring Soon</div><div class="card-link" onclick="nav('pantry')">view pantry</div></div>
+              <div style="display:flex;flex-direction:column;gap:8px;">
+                <div class="exp-row"><div class="exp-dot" style="background:var(--acc2);"></div><div style="flex:1"><div class="exp-name">Chicken Breast</div><div class="exp-cat">Protein · 350g</div></div><div class="exp-pill pill-r">Today</div></div>
+                <div class="exp-row"><div class="exp-dot" style="background:#FFA020;"></div><div style="flex:1"><div class="exp-name">Spinach</div><div class="exp-cat">Produce · 1 bag</div></div><div class="exp-pill pill-o">2 days</div></div>
+                <div class="exp-row"><div class="exp-dot" style="background:#FFA020;"></div><div style="flex:1"><div class="exp-name">Banana</div><div class="exp-cat">Produce · 4 pcs</div></div><div class="exp-pill pill-o">2 days</div></div>
+                <div class="exp-row"><div class="exp-dot" style="background:#FFA020;"></div><div style="flex:1"><div class="exp-name">Greek Yogurt</div><div class="exp-cat">Dairy · 500g</div></div><div class="exp-pill pill-o">3 days</div></div>
+                <div class="exp-row"><div class="exp-dot" style="background:var(--acc);"></div><div style="flex:1"><div class="exp-name">Eggs</div><div class="exp-cat">Protein · 8 pcs</div></div><div class="exp-pill pill-g">12 days</div></div>
+              </div>
+            </div>
+            <div class="card accent-card">
+              <div class="card-hd"><div class="card-title" style="color:var(--acc);">⚡ AI Meals Ready</div></div>
+              <div style="font-size:13px;color:var(--txt2);line-height:1.65;margin-bottom:14px;">3 suggestions generated from your pantry. Chicken breast expires today — use it now before it's wasted.</div>
+              <button class="tb-btn" style="width:100%;padding:11px;" onclick="nav('meals')">VIEW SUGGESTIONS →</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PANTRY ===== -->
+    <div class="page" id="page-pantry">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Pantry</div>
+          <div class="page-sub" id="pantrySubtitle">18 items · 3 expiring soon</div>
+        </div>
+        <div style="display:flex;gap:10px;align-items:center;">
+          <div class="filter-bar" id="pantryFilters">
+            <div class="fchip active" onclick="filterPantry(this,'All')">All</div>
+            <div class="fchip" onclick="filterPantry(this,'produce')">Produce</div>
+            <div class="fchip" onclick="filterPantry(this,'protein')">Protein</div>
+            <div class="fchip" onclick="filterPantry(this,'dairy')">Dairy</div>
+            <div class="fchip" onclick="filterPantry(this,'spice')">Spice</div>
+            <div class="fchip" onclick="filterPantry(this,'pantry')">Pantry</div>
+            <div class="fchip" onclick="filterPantry(this,'other')">Other</div>
+          </div>
+          <button class="tb-btn" onclick="openModal('addModal')">+ Add Item</button>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="card" style="padding:0;overflow:hidden;">
+          <table class="ptable" id="pantryTable">
+            <thead>
+              <tr>
+                <th>Item</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Expiry</th><th>Status</th><th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="pantryTbody"></tbody>
+          </table>
+          <button class="btn-cancel" style="width:100%;border:none;border-top:1px dashed var(--bdr2);padding:11px;border-radius:0;color:var(--txt3);background:none;cursor:pointer;font-size:12px;" onclick="openModal('addModal')">+ Add pantry item</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== MEALS ===== -->
+    <div class="page" id="page-meals">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Meal Suggestions</div>
+          <div class="page-sub">Generated from your pantry · Bulking mode · Cached</div>
+        </div>
+        <div style="display:flex;gap:10px;">
+          <div class="range-tabs">
+            <div class="range-tab active" onclick="setRangeTab(this)">AI Picks</div>
+            <div class="range-tab" onclick="setRangeTab(this)">History</div>
+          </div>
+          <button class="tb-btn" onclick="triggerSuggest()">↺ REGENERATE</button>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="meal-cards-grid" id="mealCardsGrid"></div>
+      </div>
+    </div>
+
+    <!-- ===== GROCERY ===== -->
+    <div class="page" id="page-grocery">
+      <div class="page-header">
+        <div>
+          <div class="page-title">Grocery List</div>
+          <div class="page-sub" id="grocerySub">7 items · 3 urgent · Auto-populated from pantry</div>
+        </div>
+        <button class="tb-btn" onclick="addGroceryManual()">+ Add Item</button>
+      </div>
+      <div class="page-content">
+        <div class="grocery-grid">
+          <div>
+            <div class="g-section-title">Missing ingredients</div>
+            <div class="g-list" id="gMissing"></div>
+            <div class="g-section-title" style="margin-top:18px;">Expired / Replace</div>
+            <div class="g-list" id="gExpired"></div>
+          </div>
+          <div>
+            <div class="g-section-title">Low stock</div>
+            <div class="g-list" id="gLow"></div>
+            <div class="g-section-title" style="margin-top:18px;">Added manually</div>
+            <div class="g-list" id="gManual"></div>
+          </div>
+        </div>
+        <button class="btn-cancel" style="align-self:flex-start;" onclick="clearChecked()">Clear completed</button>
+      </div>
+    </div>
+
+    <!-- ===== INSIGHTS ===== -->
+    <div class="page" id="page-insights">
+      <div class="page-header">
+        <div><div class="page-title">Weekly Insights</div><div class="page-sub">Apr 28 – May 4, 2026 · Bulking phase</div></div>
+        <div class="range-tabs">
+          <div class="range-tab active" onclick="setRangeTab(this)">This Week</div>
+          <div class="range-tab" onclick="setRangeTab(this)">Last Month</div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="insights-grid">
+          <div class="card"><div class="ins-num">14,820</div><div class="ins-label">Total kcal this week</div><div class="ins-desc">Avg 2,117 kcal/day. You're 683 kcal/day below your 2,800 bulking goal. Try adding one extra meal.</div>
+            <div style="margin-top:16px;">
+              <div class="bar-row-h"><span class="bar-lbl-h">Mon</span><div class="bar-track-h"><div class="bar-fill-h" style="width:68%;background:var(--acc);"></div></div><span class="bar-val-h">1,904</span></div>
+              <div class="bar-row-h"><span class="bar-lbl-h">Tue</span><div class="bar-track-h"><div class="bar-fill-h" style="width:82%;background:var(--acc);"></div></div><span class="bar-val-h">2,296</span></div>
+              <div class="bar-row-h"><span class="bar-lbl-h">Wed</span><div class="bar-track-h"><div class="bar-fill-h" style="width:74%;background:var(--acc);"></div></div><span class="bar-val-h">2,072</span></div>
+              <div class="bar-row-h"><span class="bar-lbl-h">Thu</span><div class="bar-track-h"><div class="bar-fill-h" style="width:91%;background:var(--acc);"></div></div><span class="bar-val-h">2,548</span></div>
+              <div class="bar-row-h"><span class="bar-lbl-h">Fri</span><div class="bar-track-h"><div class="bar-fill-h" style="width:61%;background:var(--acc);"></div></div><span class="bar-val-h">1,708</span></div>
+              <div class="bar-row-h"><span class="bar-lbl-h">Sat</span><div class="bar-track-h"><div class="bar-fill-h" style="width:78%;background:var(--acc);"></div></div><span class="bar-val-h">2,184</span></div>
+              <div class="bar-row-h"><span class="bar-lbl-h">Sun</span><div class="bar-track-h"><div class="bar-fill-h" style="width:59%;background:rgba(200,255,0,.4);"></div></div><span class="bar-val-h">1,648</span></div>
+            </div>
+          </div>
+          <div class="card"><div class="ins-num" style="color:var(--acc3);">742g</div><div class="ins-label">Total protein this week</div><div class="ins-desc">Avg 106g/day vs 155g goal. Protein is your biggest gap — try eggs at every meal.</div>
+            <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:10px;margin-top:16px;">
+              <div class="ai-stat" style="padding:10px;"><div class="ai-stat-num" style="font-size:22px;color:var(--acc);">68%</div><div class="ai-stat-lbl">Protein goal</div></div>
+              <div class="ai-stat" style="padding:10px;"><div class="ai-stat-num" style="font-size:22px;color:var(--acc3);">79%</div><div class="ai-stat-lbl">Carb goal</div></div>
+              <div class="ai-stat" style="padding:10px;"><div class="ai-stat-num" style="font-size:22px;color:var(--acc2);">55%</div><div class="ai-stat-lbl">Fat goal</div></div>
+            </div>
+          </div>
+          <div class="card"><div class="ins-num" style="color:var(--acc2);">3</div><div class="ins-label">Items wasted this week</div><div class="ins-desc">Milk, cucumber, lettuce expired unused. PrepPAL suggested meals using them but they weren't logged.</div>
+            <div style="display:flex;flex-direction:column;gap:7px;margin-top:14px;">
+              <div class="exp-row" style="padding:8px 12px;"><div class="exp-dot" style="background:var(--acc2);"></div><div style="flex:1"><div class="exp-name" style="font-size:12px;">Milk</div></div><div style="font-size:10px;color:var(--txt2);">Expired May 1</div></div>
+              <div class="exp-row" style="padding:8px 12px;"><div class="exp-dot" style="background:var(--acc2);"></div><div style="flex:1"><div class="exp-name" style="font-size:12px;">Cucumber</div></div><div style="font-size:10px;color:var(--txt2);">Expired May 2</div></div>
+              <div class="exp-row" style="padding:8px 12px;"><div class="exp-dot" style="background:var(--acc2);"></div><div style="flex:1"><div class="exp-name" style="font-size:12px;">Lettuce</div></div><div style="font-size:10px;color:var(--txt2);">Expired May 3</div></div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title">AI meal usage</div></div>
+          <div class="ai-stats-row">
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc);">11</div><div class="ai-stat-lbl">Meals logged</div></div>
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc3);">8</div><div class="ai-stat-lbl">AI suggestions used</div></div>
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc);">73%</div><div class="ai-stat-lbl">AI adoption rate</div></div>
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc2);">3</div><div class="ai-stat-lbl">Cache hits saved</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== NUTRITION ===== -->
+    <div class="page" id="page-nutrition">
+      <div class="page-header">
+        <div><div class="page-title">Nutrition</div><div class="page-sub">Detailed macro breakdown and calorie trends</div></div>
+        <div class="range-tabs">
+          <div class="range-tab active" onclick="setRangeTab(this)">Week</div>
+          <div class="range-tab" onclick="setRangeTab(this)">Month</div>
+        </div>
+      </div>
+      <div class="page-content">
+        <div class="kpi-row">
+          <div class="kpi"><div class="kpi-label">Avg daily kcal</div><div class="kpi-val">2,117 <span class="kpi-unit">kcal</span></div><div class="kpi-delta down">▼ 683 below goal</div></div>
+          <div class="kpi"><div class="kpi-label">Avg daily protein</div><div class="kpi-val">106 <span class="kpi-unit">g</span></div><div class="kpi-delta down">▼ 49g below goal</div></div>
+          <div class="kpi"><div class="kpi-label">Best day</div><div class="kpi-val">2,548 <span class="kpi-unit">kcal</span></div><div class="kpi-delta up">▲ Thursday</div></div>
+          <div class="kpi"><div class="kpi-label">Meals this week</div><div class="kpi-val">11 <span class="kpi-unit">meals</span></div><div class="kpi-delta up">▲ avg 1.6/day</div></div>
+        </div>
+        <div class="nutrition-grid">
+          <div class="card">
+            <div class="card-hd"><div class="card-title">Calorie trend — 7 days</div></div>
+            <div class="kcal-chart">
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:68%;background:var(--surf3);width:100%;"></div></div><div class="kcal-day-lbl">Mon</div><div class="kcal-day-val">1,904</div></div>
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:82%;background:var(--surf3);width:100%;"></div></div><div class="kcal-day-lbl">Tue</div><div class="kcal-day-val">2,296</div></div>
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:74%;background:var(--surf3);width:100%;"></div></div><div class="kcal-day-lbl">Wed</div><div class="kcal-day-val">2,072</div></div>
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:91%;background:var(--acc);width:100%;"></div></div><div class="kcal-day-lbl">Thu</div><div class="kcal-day-val">2,548</div></div>
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:61%;background:var(--surf3);width:100%;"></div></div><div class="kcal-day-lbl">Fri</div><div class="kcal-day-val">1,708</div></div>
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:78%;background:var(--surf3);width:100%;"></div></div><div class="kcal-day-lbl">Sat</div><div class="kcal-day-val">2,184</div></div>
+              <div class="kcal-day"><div class="kcal-bar-wrap"><div class="kcal-bar" style="height:59%;background:rgba(200,255,0,.4);width:100%;"></div></div><div class="kcal-day-lbl" style="color:var(--acc);">Sun</div><div class="kcal-day-val">1,648</div></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="card-hd"><div class="card-title">Macro split this week</div></div>
+            <div style="display:flex;flex-direction:column;gap:14px;margin-top:8px;">
+              <div>
+                <div class="macro-hd"><span class="macro-name">Protein</span><span class="macro-val" style="color:var(--acc);">742g total · 106g avg/day</span></div>
+                <div class="bar-track" style="height:8px;"><div class="bar-fill" style="width:68%;background:var(--acc);height:100%;"></div></div>
+              </div>
+              <div>
+                <div class="macro-hd"><span class="macro-name">Carbohydrates</span><span class="macro-val" style="color:var(--acc3);">1,386g total · 198g avg/day</span></div>
+                <div class="bar-track" style="height:8px;"><div class="bar-fill" style="width:79%;background:var(--acc3);height:100%;"></div></div>
+              </div>
+              <div>
+                <div class="macro-hd"><span class="macro-name">Fat</span><span class="macro-val" style="color:var(--acc2);">308g total · 44g avg/day</span></div>
+                <div class="bar-track" style="height:8px;"><div class="bar-fill" style="width:55%;background:var(--acc2);height:100%;"></div></div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="card">
+          <div class="card-hd"><div class="card-title">Meal log history</div><div class="card-link" onclick="nav('meals')">get new suggestions</div></div>
+          <div style="display:flex;flex-direction:column;gap:8px;">
+            <div class="meal-row"><div class="meal-icon">🥣</div><div class="meal-info"><div class="meal-nm">Oat & banana bowl</div><div class="meal-tm">Today · 8:22 AM</div></div><div class="meal-macros-mini"><div class="m-mini">P <span>28g</span></div><div class="m-mini">C <span>62g</span></div><div class="m-mini">F <span>8g</span></div></div><div class="meal-kcal">412</div></div>
+            <div class="meal-row"><div class="meal-icon">🥗</div><div class="meal-info"><div class="meal-nm">Grilled chicken salad</div><div class="meal-tm">Today · 12:45 PM</div></div><div class="meal-macros-mini"><div class="m-mini">P <span>55g</span></div><div class="m-mini">C <span>24g</span></div><div class="m-mini">F <span>14g</span></div></div><div class="meal-kcal">538</div></div>
+            <div class="meal-row"><div class="meal-icon">🍚</div><div class="meal-info"><div class="meal-nm">Brown rice & eggs</div><div class="meal-tm">Today · 4:00 PM</div></div><div class="meal-macros-mini"><div class="m-mini">P <span>29g</span></div><div class="m-mini">C <span>112g</span></div><div class="m-mini">F <span>22g</span></div></div><div class="meal-kcal">698</div></div>
+            <div class="meal-row"><div class="meal-icon">🍗</div><div class="meal-info"><div class="meal-nm">Spinach chicken wrap</div><div class="meal-tm">Yesterday · 1:15 PM</div></div><div class="meal-macros-mini"><div class="m-mini">P <span>55g</span></div><div class="m-mini">C <span>34g</span></div><div class="m-mini">F <span>12g</span></div></div><div class="meal-kcal">488</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== SETTINGS ===== -->
+    <div class="page" id="page-settings">
+      <div class="page-header">
+        <div><div class="page-title">Settings</div><div class="page-sub">Manage your goals, preferences, and app settings</div></div>
+      </div>
+      <div class="page-content">
+        <div class="settings-grid">
+          <div class="card">
+            <div class="settings-section">Goals & Nutrition</div>
+            <div class="settings-row">
+              <div><div class="settings-label">Daily calorie goal</div><div class="settings-sub">Sets your calorie ring target</div></div>
+              <input class="settings-input" type="number" value="2800">
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Fitness goal</div></div>
+              <div class="goal-chip-row">
+                <div class="goal-chip" onclick="setGoalChip(this)">Cutting</div>
+                <div class="goal-chip" onclick="setGoalChip(this)">Maintaining</div>
+                <div class="goal-chip active" onclick="setGoalChip(this)">Bulking</div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Protein goal (g)</div><div class="settings-sub">Optional daily target</div></div>
+              <input class="settings-input" type="number" value="155">
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Activity level</div></div>
+              <select class="settings-select">
+                <option>Sedentary</option><option>Light</option><option selected>Moderate</option><option>Active</option>
+              </select>
+            </div>
+          </div>
+          <div class="card">
+            <div class="settings-section">Dietary Preferences</div>
+            <div class="settings-row">
+              <div><div class="settings-label">Dietary restrictions</div><div class="settings-sub">AI will never suggest violating these</div></div>
+              <div class="goal-chip-row">
+                <div class="goal-chip active" onclick="setGoalChip(this)">None</div>
+                <div class="goal-chip" onclick="setGoalChip(this)">Vegetarian</div>
+                <div class="goal-chip" onclick="setGoalChip(this)">Vegan</div>
+              </div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Allergies</div><div class="settings-sub">Comma-separated list</div></div>
+              <input class="settings-input" type="text" placeholder="e.g. nuts, shellfish" style="width:180px;">
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Disliked foods</div><div class="settings-sub">AI will avoid these</div></div>
+              <input class="settings-input" type="text" placeholder="e.g. cilantro" style="width:180px;">
+            </div>
+          </div>
+          <div class="card">
+            <div class="settings-section">Notifications</div>
+            <div class="settings-row">
+              <div><div class="settings-label">Expiry alerts</div><div class="settings-sub">Daily at 8 AM</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Morning meal prompt</div><div class="settings-sub">Daily at 9 AM if no meal logged</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Low calorie reminder</div><div class="settings-sub">7 PM if under goal by 400 kcal</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Restock alerts</div><div class="settings-sub">When pantry item hits 0</div></div>
+              <div class="toggle" onclick="this.classList.toggle('on')"></div>
+            </div>
+          </div>
+          <div class="card">
+            <div class="settings-section">App Preferences</div>
+            <div class="settings-row">
+              <div><div class="settings-label">Units</div></div>
+              <select class="settings-select"><option>Metric (g, ml, kg)</option><option>Imperial (oz, lb, cups)</option></select>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">Timezone</div></div>
+              <select class="settings-select"><option>America/New_York</option><option>America/Los_Angeles</option><option>Europe/London</option></select>
+            </div>
+            <div class="settings-row">
+              <div><div class="settings-label">AI caching</div><div class="settings-sub">Reuse suggestions when pantry hasn't changed</div></div>
+              <div class="toggle on" onclick="this.classList.toggle('on')"></div>
+            </div>
+            <div class="settings-row" style="border-bottom:none;">
+              <div><div class="settings-label" style="color:var(--acc2);">Danger zone</div></div>
+              <button class="btn-cancel" style="color:var(--acc2);border-color:rgba(255,77,0,.3);" onclick="toast('Account deletion is disabled in prototype mode.','error')">Delete account</button>
+            </div>
+          </div>
+        </div>
+        <div style="display:flex;justify-content:flex-end;gap:10px;">
+          <button class="btn-cancel">Discard changes</button>
+          <button class="btn-save" onclick="toast('Settings saved successfully!')">SAVE SETTINGS</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- ===== PROFILE ===== -->
+    <div class="page" id="page-profile">
+      <div class="page-header">
+        <div><div class="page-title">Profile</div><div class="page-sub">Your personal stats and account info</div></div>
+        <button class="tb-btn" onclick="nav('settings')">Edit Settings</button>
+      </div>
+      <div class="page-content">
+        <div class="card">
+          <div class="profile-header">
+            <div class="profile-avatar">JS</div>
+            <div>
+              <div class="profile-name-big">Jake Stevens</div>
+              <div class="profile-email">jake.stevens@email.com</div>
+              <div class="profile-chips">
+                <div class="pchip pchip-acc">Bulking</div>
+                <div class="pchip pchip-goal">2,800 kcal/day</div>
+                <div class="pchip" style="background:var(--surf2);color:var(--txt2);border:1px solid var(--bdr2);">Member since Jan 2026</div>
+              </div>
+            </div>
+          </div>
+          <div class="divider" style="margin-bottom:20px;"></div>
+          <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:12px;">
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc);">47</div><div class="ai-stat-lbl">Meals logged</div></div>
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc3);">34</div><div class="ai-stat-lbl">AI meals used</div></div>
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc);">18</div><div class="ai-stat-lbl">Pantry items</div></div>
+            <div class="ai-stat"><div class="ai-stat-num" style="color:var(--acc2);">5</div><div class="ai-stat-lbl">Items saved from waste</div></div>
+          </div>
+        </div>
+        <div class="settings-grid">
+          <div class="card">
+            <div class="settings-section">Personal Info</div>
+            <div class="settings-row"><div><div class="settings-label">Display name</div></div><input class="settings-input" value="Jake Stevens" style="width:180px;"></div>
+            <div class="settings-row"><div><div class="settings-label">Email</div></div><input class="settings-input" value="jake.stevens@email.com" style="width:200px;"></div>
+            <div class="settings-row"><div><div class="settings-label">Password</div></div><button class="btn-cancel" onclick="toast('Password reset email sent!')">Reset password</button></div>
+          </div>
+          <div class="card">
+            <div class="settings-section">Current Goals</div>
+            <div class="settings-row"><div><div class="settings-label">Fitness goal</div></div><div class="pchip pchip-acc">Bulking</div></div>
+            <div class="settings-row"><div><div class="settings-label">Daily calories</div></div><div style="font-family:var(--fd);font-size:20px;color:var(--acc);">2,800 kcal</div></div>
+            <div class="settings-row"><div><div class="settings-label">Protein target</div></div><div style="font-family:var(--fd);font-size:20px;color:var(--acc3);">155g</div></div>
+            <div class="settings-row" style="border:none;"><div><div class="settings-label">Activity level</div></div><div style="font-size:13px;color:var(--txt);">Moderate</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /main-area -->
+</div><!-- /app -->
+
+<script>
+// ── STATE ──
+var state = {
+  kcal: 1648, goal: 2800,
+  protein: 112, pGoal: 155,
+  carbs: 198, cGoal: 260,
+  fat: 44, fGoal: 72,
+  loggedMealKcal: 0,
+  loggedMealP: 0,
+  loggedMealC: 0,
+  loggedMealF: 0,
+  addMissing: true,
+  currentMealName: '',
+  pantry: [
+    {id:1,name:'Chicken Breast',cat:'protein',qty:350,unit:'g',expiry:'2026-05-04'},
+    {id:2,name:'Spinach',cat:'produce',qty:1,unit:'bag',expiry:'2026-05-06'},
+    {id:3,name:'Greek Yogurt',cat:'dairy',qty:500,unit:'g',expiry:'2026-05-07'},
+    {id:4,name:'Eggs',cat:'protein',qty:8,unit:'pieces',expiry:'2026-05-16'},
+    {id:5,name:'Brown Rice',cat:'pantry',qty:600,unit:'g',expiry:'2026-08-01'},
+    {id:6,name:'Olive Oil',cat:'pantry',qty:400,unit:'ml',expiry:'2026-10-30'},
+    {id:7,name:'Garlic Powder',cat:'spice',qty:80,unit:'g',expiry:'2027-01-01'},
+    {id:8,name:'Banana',cat:'produce',qty:4,unit:'pieces',expiry:'2026-05-06'},
+    {id:9,name:'Oats',cat:'pantry',qty:500,unit:'g',expiry:'2026-12-01'},
+    {id:10,name:'Protein Powder',cat:'other',qty:200,unit:'g',expiry:'2026-09-01'},
+  ],
+  grocery: [
+    {id:1,name:'Tortilla wraps',reason:'missing',qty:'2 pcs',done:false},
+    {id:2,name:'Garlic cloves',reason:'missing',qty:'4 pcs',done:false},
+    {id:3,name:'Soy sauce',reason:'missing',qty:'1 bottle',done:false},
+    {id:4,name:'Chicken Breast',reason:'expired',qty:'500g',done:false},
+    {id:5,name:'Brown Rice',reason:'low',qty:'1 kg',done:false},
+    {id:6,name:'Protein Powder',reason:'low',qty:'1 tub',done:false},
+    {id:7,name:'Oat milk',reason:'manual',qty:'1 L',done:false},
+  ],
+  meals: [
+    {name:'Garlic Egg Fried Rice',kcal:624,p:42,c:78,f:14,tags:['High Protein','Quick','Low Fat'],icon:'🍳',missing:[],instructions:'Heat olive oil in a pan. Add garlic powder and cooked rice. Stir in beaten eggs and cook until set. Season with salt and serve hot.'},
+    {name:'Spinach Chicken Wrap',kcal:488,p:55,c:34,f:12,tags:['Bulking','Meal Prep'],icon:'🥙',missing:['Tortilla wraps'],instructions:'Grill chicken breast until cooked through. Layer spinach on the tortilla wrap. Slice chicken and add on top. Roll and slice in half.'},
+    {name:'Yogurt Protein Bowl',kcal:312,p:28,c:38,f:6,tags:['No Cook','Vegetarian','Cutting'],icon:'🥣',missing:[],instructions:'Spoon Greek yogurt into a bowl. Slice banana and add on top. Sprinkle with oats and serve immediately.'},
+  ],
+  nextPantryId: 11,
+  pantryFilter: 'All'
+};
+
+// ── NAVIGATION ──
+function nav(page, skipHistory) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+  var p = document.getElementById('page-' + page);
+  if(p) p.classList.add('active');
+  var n = document.getElementById('nav-' + page);
+  if(n) n.classList.add('active');
+  closeNotif();
+  if(page === 'pantry') renderPantry();
+  if(page === 'grocery') renderGrocery();
+  if(page === 'meals') renderMealCards();
+}
+
+// ── RANGE TABS ──
+function setRangeTab(el) {
+  el.closest('.range-tabs').querySelectorAll('.range-tab').forEach(t => t.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── NOTIFICATIONS ──
+function toggleNotif() {
+  document.getElementById('notifPanel').classList.toggle('open');
+}
+function closeNotif() {
+  document.getElementById('notifPanel').classList.remove('open');
+}
+function closeNotifOnOverlay(e) {
+  if(!document.getElementById('notifPanel').contains(e.target) && e.target !== document.getElementById('notifBtn')) closeNotif();
+}
+function markAllRead() {
+  document.querySelectorAll('.notif-unread').forEach(d => d.remove());
+  document.querySelector('.notif-dot').style.display = 'none';
+  toast('All notifications marked as read');
+  closeNotif();
+}
+
+// ── MODALS ──
+function openModal(id) { document.getElementById(id).classList.add('open'); }
+function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+function closeModalOnOverlay(e, id) { if(e.target.id === id) closeModal(id); }
+
+// ── PANTRY ──
+function getExpiryInfo(expiry) {
+  if(!expiry) return {label:'No expiry', cls:'', dotColor:'var(--txt3)'};
+  var d = new Date(expiry), now = new Date();
+  now.setHours(0,0,0,0); d.setHours(0,0,0,0);
+  var days = Math.round((d - now) / 86400000);
+  if(days < 0) return {label:'Expired', cls:'pill-r', dotColor:'var(--acc2)'};
+  if(days === 0) return {label:'Today', cls:'pill-r', dotColor:'var(--acc2)'};
+  if(days <= 2) return {label:days+'d', cls:'pill-o', dotColor:'#FFA020'};
+  if(days <= 5) return {label:days+' days', cls:'pill-o', dotColor:'#FFA020'};
+  return {label:days+' days', cls:'pill-g', dotColor:'var(--acc)'};
+}
+function getCatBadge(cat) {
+  var map = {protein:'cb-protein',produce:'cb-produce',dairy:'cb-dairy',pantry:'cb-pantry',spice:'cb-spice',other:'cb-other'};
+  return '<span class="cat-badge '+(map[cat]||'cb-other')+'">'+cat+'</span>';
+}
+function renderPantry() {
+  var items = state.pantry.filter(i => state.pantryFilter === 'All' || i.cat === state.pantryFilter);
+  var html = '';
+  items.forEach(function(item) {
+    var exp = getExpiryInfo(item.expiry);
+    html += '<tr id="ptr-'+item.id+'">';
+    html += '<td style="font-weight:500;">'+item.name+'</td>';
+    html += '<td>'+getCatBadge(item.cat)+'</td>';
+    html += '<td><input class="qty-input" type="number" value="'+item.qty+'" onchange="updateQty('+item.id+',this.value)"></td>';
+    html += '<td style="color:var(--txt2);">'+item.unit+'</td>';
+    html += '<td style="color:'+(exp.cls==='pill-r'?'#FF6040':'var(--txt2)')+';">'+(item.expiry||'—')+'</td>';
+    html += '<td>'+(exp.label!=='No expiry'?'<span class="exp-pill '+exp.cls+'" style="margin:0;">'+exp.label+'</span>':'<span style="color:var(--txt3);font-size:12px;">—</span>')+'</td>';
+    html += '<td><button class="tr-del" onclick="deleteItem('+item.id+')" title="Delete">✕</button></td>';
+    html += '</tr>';
+  });
+  document.getElementById('pantryTbody').innerHTML = html;
+  document.getElementById('pantrySubtitle').textContent = state.pantry.length+' items · '+state.pantry.filter(i=>getExpiryInfo(i.expiry).cls==='pill-r'||getExpiryInfo(i.expiry).cls==='pill-o').length+' expiring soon';
+  document.getElementById('pantryCount').innerHTML = state.pantry.length+' <span class="kpi-unit">items</span>';
+}
+function filterPantry(el, cat) {
+  document.querySelectorAll('#pantryFilters .fchip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+  state.pantryFilter = cat;
+  renderPantry();
+}
+function updateQty(id, val) {
+  var item = state.pantry.find(i => i.id === id);
+  if(item) item.qty = Math.max(0, parseFloat(val)||0);
+}
+function deleteItem(id) {
+  state.pantry = state.pantry.filter(i => i.id !== id);
+  renderPantry();
+  toast('Item removed from pantry');
+}
+function saveItem() {
+  var name = document.getElementById('add-name').value.trim();
+  var qty = parseFloat(document.getElementById('add-qty').value)||0;
+  var unit = document.getElementById('add-unit').value;
+  var cat = document.getElementById('add-cat').value;
+  var expiry = document.getElementById('add-expiry').value;
+  if(!name || qty <= 0) { toast('Please enter a name and quantity.','error'); return; }
+  state.pantry.push({id:state.nextPantryId++,name:name,cat:cat,qty:qty,unit:unit,expiry:expiry||null});
+  closeModal('addModal');
+  document.getElementById('add-name').value='';
+  document.getElementById('add-qty').value='';
+  document.getElementById('add-expiry').value='';
+  toast(name+' added to pantry!');
+  renderPantry();
+}
+
+// ── GROCERY ──
+function renderGrocery() {
+  var sections = {missing:'gMissing',expired:'gExpired',low:'gLow',manual:'gManual'};
+  Object.values(sections).forEach(id => document.getElementById(id).innerHTML='');
+  state.grocery.forEach(function(item) {
+    var sectionId = sections[item.reason]||'gManual';
+    var reasonColor = {missing:'#FF7A50',expired:'#FF5050',low:'var(--acc)',manual:'var(--txt2)'}[item.reason]||'var(--txt2)';
+    var reasonLabel = {missing:'Missing ingredient',expired:'Expired',low:'Low stock',manual:'Added by you'}[item.reason]||item.reason;
+    var html = '<div class="g-item'+(item.done?' done':'')+'" id="gi-'+item.id+'">';
+    html += '<div class="g-check'+(item.done?' checked':'')+'" onclick="toggleGrocery('+item.id+')"></div>';
+    html += '<div style="flex:1"><div class="g-name">'+item.name+'</div><div class="g-reason" style="color:'+reasonColor+';">'+reasonLabel+'</div></div>';
+    html += '<div class="g-qty">'+item.qty+'</div></div>';
+    document.getElementById(sectionId).insertAdjacentHTML('beforeend',html);
+  });
+  var remaining = state.grocery.filter(i=>!i.done).length;
+  document.getElementById('grocerySub').textContent = state.grocery.length+' items · '+remaining+' remaining';
+  document.getElementById('groceryBadge').textContent = remaining;
+}
+function toggleGrocery(id) {
+  var item = state.grocery.find(i=>i.id===id);
+  if(item) { item.done = !item.done; renderGrocery(); }
+}
+function clearChecked() {
+  state.grocery = state.grocery.filter(i=>!i.done);
+  renderGrocery();
+  toast('Completed items cleared!');
+}
+function addGroceryManual() {
+  var name = prompt('Item name:');
+  if(name) {
+    state.grocery.push({id:Date.now(),name:name,reason:'manual',qty:'1 pc',done:false});
+    renderGrocery();
+    toast(name+' added to grocery list!');
+  }
+}
+
+// ── MEAL SUGGESTIONS ──
+function renderMealCards() {
+  var html = '';
+  state.meals.forEach(function(meal, idx) {
+    var logged = meal.logged || false;
+    html += '<div class="mcard">';
+    html += '<div class="mcard-header">';
+    html += '<div style="display:flex;justify-content:space-between;align-items:flex-start;margin-bottom:8px;">';
+    html += '<div class="mcard-name">'+meal.icon+' '+meal.name+'</div>';
+    html += '<div class="mcard-kcal-badge">'+meal.kcal+' kcal</div></div>';
+    html += '<div class="tag-row">'+meal.tags.map(t=>'<div class="tag">'+t+'</div>').join('')+'</div>';
+    html += '</div>';
+    html += '<div class="mcard-body">';
+    html += '<div class="macro-pill-row">';
+    html += '<div class="macro-pill"><div class="macro-pill-val" style="color:var(--acc);">'+meal.p+'g</div><div class="macro-pill-lbl">Protein</div></div>';
+    html += '<div class="macro-pill"><div class="macro-pill-val" style="color:var(--acc3);">'+meal.c+'g</div><div class="macro-pill-lbl">Carbs</div></div>';
+    html += '<div class="macro-pill"><div class="macro-pill-val" style="color:var(--acc2);">'+meal.f+'g</div><div class="macro-pill-lbl">Fat</div></div>';
+    html += '</div>';
+    if(meal.missing && meal.missing.length) html += '<div class="mcard-missing">⚠ Missing: '+meal.missing.join(', ')+'</div>';
+    html += '<div class="mcard-instructions">'+meal.instructions+'</div>';
+    html += '<button class="log-btn"'+(logged?' disabled':'')+' onclick="openLogModal('+idx+')">'+(logged?'✓ LOGGED':'LOG THIS MEAL')+'</button>';
+    html += '</div></div>';
+  });
+  document.getElementById('mealCardsGrid').innerHTML = html;
+}
+
+function openLogModal(idx) {
+  var meal = state.meals[idx];
+  document.getElementById('logMealName').textContent = meal.name;
+  document.getElementById('logMealKcal').textContent = meal.kcal+' kcal';
+  document.getElementById('logP').textContent = meal.p+'g';
+  document.getElementById('logC').textContent = meal.c+'g';
+  document.getElementById('logF').textContent = meal.f+'g';
+  state.currentMealIdx = idx;
+  state.addMissing = true;
+  document.getElementById('missYes').classList.add('active');
+  document.getElementById('missNo').classList.remove('active');
+  document.getElementById('logModal').classList.add('open');
+}
+function setMissing(val) {
+  state.addMissing = val;
+  document.getElementById('missYes').classList.toggle('active', val);
+  document.getElementById('missNo').classList.toggle('active', !val);
+}
+function confirmLog() {
+  var meal = state.meals[state.currentMealIdx];
+  meal.logged = true;
+  // Update state
+  state.kcal += meal.kcal;
+  state.protein += meal.p;
+  state.carbs += meal.c;
+  state.fat += meal.f;
+  // Add missing to grocery
+  if(state.addMissing && meal.missing) {
+    meal.missing.forEach(function(item) {
+      if(!state.grocery.find(g=>g.name===item)) {
+        state.grocery.push({id:Date.now()+Math.random(),name:item,reason:'missing',qty:'1 pc',done:false});
+      }
+    });
+  }
+  closeModal('logModal');
+  updateDashboard();
+  renderMealCards();
+  toast('🍽 '+meal.name+' logged! +'+meal.kcal+' kcal');
+}
+
+function updateDashboard() {
+  // Ring
+  var pct = Math.min(state.kcal / state.goal, 1);
+  var circumference = 301.6;
+  var offset = circumference - (pct * circumference);
+  var ring = document.getElementById('dashRing');
+  if(ring) { ring.setAttribute('stroke-dashoffset', Math.round(offset)); ring.setAttribute('stroke', pct >= 1 ? '#FF4D00' : '#C8FF00'); }
+  var kEl = document.getElementById('dashKcal');
+  if(kEl) kEl.textContent = state.kcal.toLocaleString();
+  var pEl = document.getElementById('dashP'); if(pEl) pEl.textContent = state.protein+'g / '+state.pGoal+'g';
+  var cEl = document.getElementById('dashC'); if(cEl) cEl.textContent = state.carbs+'g / '+state.cGoal+'g';
+  var fEl = document.getElementById('dashF'); if(fEl) fEl.textContent = state.fat+'g / '+state.fGoal+'g';
+}
+
+function triggerSuggest() {
+  document.getElementById('loadingOverlay').classList.add('show');
+  setTimeout(function() {
+    document.getElementById('loadingOverlay').classList.remove('show');
+    nav('meals');
+    toast('3 new meal suggestions generated!');
+  }, 2000);
+}
+
+// ── SETTINGS ──
+function setGoalChip(el) {
+  el.closest('.goal-chip-row').querySelectorAll('.goal-chip').forEach(c => c.classList.remove('active'));
+  el.classList.add('active');
+}
+
+// ── TOAST ──
+function toast(msg, type) {
+  var wrap = document.getElementById('toastWrap');
+  var el = document.createElement('div');
+  el.className = 'toast'+(type==='error'?' error':'');
+  el.textContent = msg;
+  wrap.appendChild(el);
+  setTimeout(function() { el.style.opacity='0'; el.style.transform='translateX(20px)'; el.style.transition='all .3s'; setTimeout(function(){el.remove();},300); }, 3000);
+}
+
+// ── INIT ──
+renderPantry();
+renderGrocery();
+renderMealCards();
+</script>
+</body>
+</html>

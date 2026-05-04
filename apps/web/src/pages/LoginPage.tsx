@@ -2,6 +2,20 @@ import React, { useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 
+const inp: React.CSSProperties = {
+  background: 'var(--surf2)',
+  border: '1px solid var(--bdr2)',
+  borderRadius: 9,
+  padding: '13px 16px',
+  fontSize: 14,
+  color: 'var(--txt)',
+  outline: 'none',
+  width: '100%',
+  boxSizing: 'border-box',
+  fontFamily: 'var(--fb)',
+  transition: 'border-color .15s',
+};
+
 export function LoginPage() {
   const navigate = useNavigate();
   const { signInWithEmail, signUpWithEmail } = useAuthStore();
@@ -24,58 +38,44 @@ export function LoginPage() {
     navigate('/dashboard');
   };
 
-  const inputStyle: React.CSSProperties = {
-    background: 'var(--field-bg)',
-    border: '1px solid var(--field-border)',
-    borderRadius: 14,
-    padding: '14px 16px',
-    fontSize: 15,
-    color: 'var(--text-primary)',
-    outline: 'none',
-    width: '100%',
-    boxSizing: 'border-box',
-  };
-
   return (
     <div style={{
       minHeight: '100vh',
-      background: 'var(--bg)',
+      background: '#050505',
       display: 'flex',
       alignItems: 'center',
       justifyContent: 'center',
       padding: 20,
     }}>
-      <div style={{ width: 420, maxWidth: '100%' }}>
+      {/* Subtle grid bg */}
+      <div style={{
+        position: 'fixed', inset: 0, zIndex: 0, pointerEvents: 'none',
+        background: 'radial-gradient(ellipse at 60% 40%, rgba(200,255,0,.05) 0%, transparent 60%)',
+      }} />
+
+      <div style={{ width: 420, maxWidth: '100%', position: 'relative', zIndex: 1 }}>
         {/* Brand */}
-        <div style={{ textAlign: 'center', marginBottom: 32 }}>
+        <div style={{ textAlign: 'center', marginBottom: 36 }}>
           <div style={{
-            width: 64, height: 64,
-            borderRadius: 20,
-            background: 'linear-gradient(135deg, var(--accent) 0%, #8b5cf6 100%)',
-            display: 'flex', alignItems: 'center', justifyContent: 'center',
-            margin: '0 auto 16px',
-            fontSize: 28,
-            boxShadow: '0 8px 24px rgba(99,102,241,0.30)',
+            fontFamily: 'var(--fd)', fontSize: 48, letterSpacing: 4,
+            color: 'var(--acc)', lineHeight: 1, marginBottom: 8,
           }}>
-            🥗
+            PREPPAL
           </div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.02em', marginBottom: 6 }}>PrepPAL</div>
-          <div style={{ fontSize: 14, color: 'var(--text-muted)', lineHeight: 1.5, maxWidth: 280, margin: '0 auto' }}>
-            Plan meals, track nutrition, and keep your pantry organised.
+          <div style={{ fontSize: 13, color: 'var(--txt2)', lineHeight: 1.6 }}>
+            AI-powered meal planning · Reduce food waste · Hit your goals
           </div>
         </div>
 
         {/* Card */}
         <div style={{
-          background: 'var(--surface)',
-          borderRadius: 'var(--radius)',
+          background: 'var(--surf)',
+          border: '1px solid var(--bdr2)',
+          borderRadius: 'var(--rad-xl)',
           padding: 32,
-          border: '1px solid var(--border)',
-          boxShadow: 'var(--shadow-xl)',
-          backdropFilter: 'blur(12px)',
         }}>
           {/* Mode toggle */}
-          <div style={{ display: 'flex', background: 'var(--field-bg)', borderRadius: 12, padding: 3, marginBottom: 24 }}>
+          <div style={{ display: 'flex', background: 'var(--surf2)', borderRadius: 8, padding: 3, marginBottom: 24, border: '1px solid var(--bdr)' }}>
             {(['login', 'signup'] as const).map(m => (
               <button
                 key={m}
@@ -83,19 +83,20 @@ export function LoginPage() {
                 onClick={() => { setMode(m); setError(''); }}
                 style={{
                   flex: 1,
-                  padding: '9px',
-                  fontSize: 13.5,
-                  fontWeight: 700,
-                  borderRadius: 10,
+                  padding: '8px',
+                  fontSize: 12,
+                  fontWeight: 600,
+                  fontFamily: 'var(--fd)',
+                  letterSpacing: '1.5px',
+                  borderRadius: 6,
                   border: 'none',
                   cursor: 'pointer',
-                  background: mode === m ? 'var(--surface-solid)' : 'transparent',
-                  color: mode === m ? 'var(--text-primary)' : 'var(--text-muted)',
-                  boxShadow: mode === m ? 'var(--shadow)' : 'none',
-                  transition: 'all 0.15s ease',
+                  background: mode === m ? 'var(--acc)' : 'transparent',
+                  color: mode === m ? 'var(--dark)' : 'var(--txt2)',
+                  transition: 'all .15s',
                 }}
               >
-                {m === 'login' ? 'Log In' : 'Sign Up'}
+                {m === 'login' ? 'LOG IN' : 'SIGN UP'}
               </button>
             ))}
           </div>
@@ -106,7 +107,7 @@ export function LoginPage() {
                 placeholder="Your name"
                 value={name}
                 onChange={e => setName(e.target.value)}
-                style={inputStyle}
+                style={inp}
                 autoFocus
               />
             )}
@@ -115,7 +116,7 @@ export function LoginPage() {
               type="email"
               value={email}
               onChange={e => setEmail(e.target.value)}
-              style={inputStyle}
+              style={inp}
               autoFocus={mode === 'login'}
             />
             <input
@@ -123,17 +124,17 @@ export function LoginPage() {
               type="password"
               value={password}
               onChange={e => setPassword(e.target.value)}
-              style={inputStyle}
+              style={inp}
             />
 
             {error && (
               <div style={{
-                background: 'rgba(239,68,68,0.08)',
-                border: '1px solid rgba(239,68,68,0.22)',
-                borderRadius: 10,
+                background: 'rgba(255,77,0,.08)',
+                border: '1px solid rgba(255,77,0,.22)',
+                borderRadius: 9,
                 padding: '10px 14px',
                 fontSize: 13,
-                color: '#b42318',
+                color: '#FF7A50',
               }}>
                 {error}
               </div>
@@ -142,20 +143,20 @@ export function LoginPage() {
             <button
               type="submit"
               disabled={loading}
-              className="btn btnPrimary"
-              style={{ padding: '14px', fontSize: 15, fontWeight: 750, borderRadius: 14, marginTop: 4, width: '100%', justifyContent: 'center' }}
+              className="tbBtn"
+              style={{ padding: '14px', fontSize: 16, borderRadius: 9, marginTop: 4, width: '100%', opacity: loading ? 0.7 : 1 }}
             >
               {loading ? (
                 <span style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'center' }}>
-                  <span className="animate-spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(255,255,255,0.3)', borderTopColor: '#fff', borderRadius: '50%' }} />
+                  <span className="animate-spin" style={{ display: 'inline-block', width: 16, height: 16, border: '2px solid rgba(0,0,0,.2)', borderTopColor: 'var(--dark)', borderRadius: '50%' }} />
                   Loading…
                 </span>
-              ) : mode === 'login' ? 'Log In' : 'Create Account'}
+              ) : mode === 'login' ? 'LOG IN' : 'CREATE ACCOUNT'}
             </button>
           </form>
         </div>
 
-        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--text-muted)', marginTop: 20 }}>
+        <p style={{ textAlign: 'center', fontSize: 12, color: 'var(--txt3)', marginTop: 20 }}>
           Your nutrition data is private and never shared.
         </p>
       </div>
