@@ -25,12 +25,12 @@ export function LoginPage() {
   };
 
   return (
-    <div style={{ minHeight: '100vh', background: '#0f1117', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
-      <div style={{ width: 380, background: '#1a1f2e', borderRadius: 20, padding: 36, border: '1px solid #1f2937' }}>
+    <div style={styles.root}>
+      <div style={styles.card}>
         <div style={{ textAlign: 'center', marginBottom: 32 }}>
-          <div style={{ fontSize: 48, marginBottom: 8 }}>🥦</div>
-          <div style={{ fontSize: 28, fontWeight: 800, color: '#f9fafb' }}>PrepPAL</div>
-          <div style={{ fontSize: 14, color: '#9ca3af', marginTop: 4 }}>Your personal meal helper</div>
+          <div style={styles.logo} aria-hidden>PP</div>
+          <div style={styles.title}>PrepPAL</div>
+          <div style={styles.subtitle}>Plan meals, track nutrition, and keep your pantry organised.</div>
         </div>
 
         <form onSubmit={handleSubmit} style={{ display: 'flex', flexDirection: 'column', gap: 12 }}>
@@ -46,7 +46,7 @@ export function LoginPage() {
           {error && <div style={{ color: '#ef4444', fontSize: 13 }}>{error}</div>}
 
           <button type="submit" disabled={loading} style={{
-            background: '#22c55e', color: '#0f1117', border: 'none',
+            ...styles.primaryBtn,
             borderRadius: 12, padding: '14px', fontSize: 16, fontWeight: 700,
             cursor: 'pointer', marginTop: 4, opacity: loading ? 0.7 : 1,
           }}>
@@ -56,7 +56,7 @@ export function LoginPage() {
 
         <div style={{ textAlign: 'center', marginTop: 16 }}>
           <button onClick={() => setMode(mode === 'login' ? 'signup' : 'login')}
-            style={{ background: 'none', border: 'none', color: '#22c55e', fontSize: 14, cursor: 'pointer' }}>
+            style={{ background: 'none', border: 'none', color: 'rgba(199,210,254,0.95)', fontSize: 14, cursor: 'pointer' }}>
             {mode === 'login' ? "Don't have an account? Sign up" : 'Already have an account? Log in'}
           </button>
         </div>
@@ -66,6 +66,55 @@ export function LoginPage() {
 }
 
 const inputStyle: React.CSSProperties = {
-  background: '#111827', border: '1px solid #374151', borderRadius: 12,
-  padding: '13px 14px', fontSize: 15, color: '#f9fafb', outline: 'none',
+  background: 'rgba(15, 23, 42, 0.65)',
+  border: '1px solid rgba(148,163,184,0.22)',
+  borderRadius: 12,
+  padding: '13px 14px',
+  fontSize: 15,
+  color: '#f8fafc',
+  outline: 'none',
+};
+
+const styles: Record<string, React.CSSProperties> = {
+  root: {
+    minHeight: '100vh',
+    background:
+      'radial-gradient(1200px 600px at 20% -10%, rgba(99,102,241,0.18), transparent 55%), radial-gradient(900px 450px at 90% 0%, rgba(16,185,129,0.07), transparent 55%), #0b0f17',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    padding: 20,
+  },
+  card: {
+    width: 400,
+    maxWidth: '100%',
+    background: 'rgba(15, 23, 42, 0.72)',
+    borderRadius: 18,
+    padding: 34,
+    border: '1px solid rgba(148,163,184,0.16)',
+    boxShadow: '0 22px 60px rgba(0,0,0,0.55)',
+    backdropFilter: 'blur(10px)',
+  },
+  logo: {
+    width: 44,
+    height: 44,
+    borderRadius: 14,
+    background: 'rgba(99,102,241,0.16)',
+    border: '1px solid rgba(99,102,241,0.35)',
+    color: '#c7d2fe',
+    fontSize: 13,
+    fontWeight: 900,
+    letterSpacing: '0.7px',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    margin: '0 auto 12px',
+  },
+  title: { fontSize: 26, fontWeight: 850, color: '#f8fafc' },
+  subtitle: { fontSize: 13, color: 'rgba(148,163,184,0.9)', marginTop: 6, lineHeight: 1.45 },
+  primaryBtn: {
+    background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+    color: '#0b0f17',
+    border: '1px solid rgba(99,102,241,0.35)',
+  },
 };

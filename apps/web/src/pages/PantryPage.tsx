@@ -5,10 +5,8 @@ import type { PantryItem, Unit, Category } from '@preppal/types';
 
 const UNITS: Unit[] = ['g', 'kg', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
 const CATEGORIES: Category[] = ['produce', 'dairy', 'protein', 'pantry', 'spice', 'other'];
-const CATEGORY_ICONS: Record<Category, string> = {
-  produce: '🥦', dairy: '🥛', protein: '🍗', pantry: '🫙', spice: '🌶️', other: '📦',
-};
-const EXPIRY_COLORS = { ok: '#22c55e', warning: '#f59e0b', danger: '#ef4444', expired: '#6b7280' };
+const EXPIRY_COLORS = { ok: '#a5b4fc', warning: '#f59e0b', danger: '#ef4444', expired: '#6b7280' };
+type ExpiryStatus = keyof typeof EXPIRY_COLORS;
 
 interface FormState {
   name: string; quantity: string; unit: Unit; expiry_date: string; category: Category; notes: string;
@@ -16,8 +14,15 @@ interface FormState {
 const EMPTY_FORM: FormState = { name: '', quantity: '', unit: 'pieces', expiry_date: '', category: 'other', notes: '' };
 
 const inputStyle: React.CSSProperties = {
-  width: '100%', background: '#111827', border: '1px solid #374151', borderRadius: 10,
-  padding: '10px 14px', fontSize: 14, color: '#f9fafb', outline: 'none', boxSizing: 'border-box',
+  width: '100%',
+  background: 'rgba(2,6,23,0.55)',
+  border: '1px solid rgba(148,163,184,0.18)',
+  borderRadius: 12,
+  padding: '10px 14px',
+  fontSize: 14,
+  color: '#f8fafc',
+  outline: 'none',
+  boxSizing: 'border-box',
 };
 const selectStyle: React.CSSProperties = { ...inputStyle, cursor: 'pointer', appearance: 'none' };
 const labelStyle: React.CSSProperties = {
@@ -88,7 +93,7 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
       onClick={e => { if (e.target === e.currentTarget) onClose(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1000, padding: 16 }}
     >
-      <div style={{ background: '#1a1f2e', borderRadius: 18, border: '1px solid #1f2937', width: '100%', maxWidth: 480, padding: 28, boxShadow: '0 25px 50px rgba(0,0,0,0.5)' }}>
+      <div style={{ background: 'rgba(15, 23, 42, 0.86)', borderRadius: 18, border: '1px solid rgba(148,163,184,0.18)', width: '100%', maxWidth: 480, padding: 28, boxShadow: '0 25px 60px rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 24 }}>
           <h2 style={{ margin: 0, fontSize: 20, fontWeight: 800, color: '#f9fafb' }}>{isEdit ? 'Edit Item' : 'Add Item'}</h2>
           <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#6b7280', fontSize: 22, cursor: 'pointer', lineHeight: 1, padding: 4 }}>×</button>
@@ -117,7 +122,7 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
             <label style={labelStyle}>Category *</label>
             <select style={selectStyle} value={form.category} onChange={set('category')}>
               {CATEGORIES.map(c => (
-                <option key={c} value={c}>{CATEGORY_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
               ))}
             </select>
           </div>
@@ -139,10 +144,10 @@ function PantryModal({ item, onClose, onSaved }: PantryModalProps) {
           )}
 
           <div style={{ display: 'flex', gap: 10, marginTop: 4 }}>
-            <button onClick={onClose} style={{ flex: 1, background: 'none', border: '1px solid #374151', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 600, color: '#9ca3af', cursor: 'pointer' }}>
+            <button onClick={onClose} style={{ flex: 1, background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}>
               Cancel
             </button>
-            <button onClick={handleSave} disabled={saving} style={{ flex: 2, background: '#22c55e', border: 'none', borderRadius: 10, padding: '12px', fontSize: 14, fontWeight: 700, color: '#0f1117', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
+            <button onClick={handleSave} disabled={saving} style={{ flex: 2, background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))', border: '1px solid rgba(99,102,241,0.35)', borderRadius: 12, padding: '12px', fontSize: 14, fontWeight: 750, color: '#0b0f17', cursor: saving ? 'not-allowed' : 'pointer', opacity: saving ? 0.7 : 1 }}>
               {saving ? 'Saving…' : isEdit ? 'Save Changes' : 'Add to Pantry'}
             </button>
           </div>
@@ -164,11 +169,11 @@ function DeleteConfirm({ item, onCancel, onConfirm, deleting }: DeleteConfirmPro
       onClick={e => { if (e.target === e.currentTarget) onCancel(); }}
       style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.7)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 1001, padding: 16 }}
     >
-      <div style={{ background: '#1a1f2e', borderRadius: 16, border: '1px solid #1f2937', width: '100%', maxWidth: 360, padding: 24 }}>
+      <div style={{ background: 'rgba(15, 23, 42, 0.86)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.18)', width: '100%', maxWidth: 360, padding: 24, boxShadow: '0 25px 60px rgba(0,0,0,0.65)', backdropFilter: 'blur(10px)' }}>
         <h3 style={{ margin: '0 0 8px', fontSize: 18, fontWeight: 700, color: '#f9fafb' }}>Delete "{item.name}"?</h3>
         <p style={{ margin: '0 0 20px', fontSize: 14, color: '#9ca3af', lineHeight: 1.5 }}>This will remove it from your pantry. This cannot be undone.</p>
         <div style={{ display: 'flex', gap: 10 }}>
-          <button onClick={onCancel} style={{ flex: 1, background: 'none', border: '1px solid #374151', borderRadius: 10, padding: '11px', fontSize: 14, fontWeight: 600, color: '#9ca3af', cursor: 'pointer' }}>Cancel</button>
+          <button onClick={onCancel} style={{ flex: 1, background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '11px', fontSize: 14, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}>Cancel</button>
           <button onClick={onConfirm} disabled={deleting} style={{ flex: 1, background: '#ef4444', border: 'none', borderRadius: 10, padding: '11px', fontSize: 14, fontWeight: 700, color: '#fff', cursor: deleting ? 'not-allowed' : 'pointer', opacity: deleting ? 0.7 : 1 }}>
             {deleting ? 'Deleting…' : 'Delete'}
           </button>
@@ -263,12 +268,12 @@ export function PantryPage() {
 
   const filterTabs: Array<{ key: Category | 'all'; label: string }> = [
     { key: 'all', label: 'All' },
-    { key: 'produce', label: '🥦 Produce' },
-    { key: 'dairy', label: '🥛 Dairy' },
-    { key: 'protein', label: '🍗 Protein' },
-    { key: 'pantry', label: '🫙 Pantry' },
-    { key: 'spice', label: '🌶️ Spice' },
-    { key: 'other', label: '📦 Other' },
+    { key: 'produce', label: 'Produce' },
+    { key: 'dairy', label: 'Dairy' },
+    { key: 'protein', label: 'Protein' },
+    { key: 'pantry', label: 'Pantry' },
+    { key: 'spice', label: 'Spice' },
+    { key: 'other', label: 'Other' },
   ];
 
   return (
@@ -283,7 +288,7 @@ export function PantryPage() {
         </div>
         <button
           onClick={() => { setModalItem(null); setModalOpen(true); }}
-          style={{ background: '#22c55e', color: '#0f1117', border: 'none', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 700, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
+          style={{ background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))', color: '#0b0f17', border: '1px solid rgba(99,102,241,0.35)', borderRadius: 12, padding: '11px 18px', fontSize: 14, fontWeight: 750, cursor: 'pointer', display: 'flex', alignItems: 'center', gap: 6, flexShrink: 0 }}
         >
           + Add Item
         </button>
@@ -294,7 +299,7 @@ export function PantryPage() {
         placeholder="Search items…"
         value={search}
         onChange={e => setSearch(e.target.value)}
-        style={{ width: '100%', background: '#1a1f2e', border: '1px solid #374151', borderRadius: 12, padding: '12px 16px', fontSize: 15, color: '#f9fafb', marginTop: 20, marginBottom: 14, outline: 'none', boxSizing: 'border-box' }}
+        style={{ width: '100%', background: 'rgba(15, 23, 42, 0.72)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '12px 16px', fontSize: 15, color: '#f8fafc', marginTop: 20, marginBottom: 14, outline: 'none', boxSizing: 'border-box' }}
       />
 
       {/* Category filter tabs */}
@@ -306,7 +311,7 @@ export function PantryPage() {
             <button
               key={key}
               onClick={() => setActiveCategory(key)}
-              style={{ background: active ? '#22c55e' : '#1a1f2e', color: active ? '#0f1117' : '#9ca3af', border: active ? 'none' : '1px solid #1f2937', borderRadius: 20, padding: '6px 14px', fontSize: 13, fontWeight: 600, cursor: 'pointer', whiteSpace: 'nowrap' }}
+              style={{ background: active ? 'rgba(99,102,241,0.95)' : 'rgba(15, 23, 42, 0.72)', color: active ? '#0b0f17' : 'rgba(226,232,240,0.78)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 999, padding: '7px 14px', fontSize: 13, fontWeight: 650, cursor: 'pointer', whiteSpace: 'nowrap' }}
             >
               {label} {count > 0 && <span style={{ opacity: 0.7, marginLeft: 3 }}>({count})</span>}
             </button>
@@ -318,10 +323,9 @@ export function PantryPage() {
       {loading ? (
         <p style={{ color: '#6b7280', padding: 24 }}>Loading…</p>
       ) : (
-        <div style={{ background: '#1a1f2e', borderRadius: 14, border: '1px solid #1f2937', overflow: 'hidden' }}>
+        <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.14)', overflow: 'hidden', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
           {filtered.length === 0 ? (
             <div style={{ padding: 48, textAlign: 'center' }}>
-              <div style={{ fontSize: 36, marginBottom: 12 }}>🫙</div>
               <div style={{ fontSize: 15, fontWeight: 600, color: '#f9fafb', marginBottom: 6 }}>
                 {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
               </div>
@@ -332,7 +336,7 @@ export function PantryPage() {
           ) : (
             <table style={{ width: '100%', borderCollapse: 'collapse' }}>
               <thead>
-                <tr style={{ borderBottom: '1px solid #1f2937' }}>
+                <tr style={{ borderBottom: '1px solid rgba(148,163,184,0.12)' }}>
                   {['Name', 'Quantity', 'Category', 'Expires', 'Actions'].map(h => (
                     <th key={h} style={{ padding: '12px 16px', textAlign: h === 'Actions' ? 'right' : 'left', fontSize: 11, fontWeight: 700, color: '#4b5563', textTransform: 'uppercase', letterSpacing: '0.5px' }}>{h}</th>
                   ))}
@@ -340,13 +344,16 @@ export function PantryPage() {
               </thead>
               <tbody>
                 {filtered.map(item => {
-                  const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date);
+                  const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date) as {
+                    status: ExpiryStatus;
+                    daysUntilExpiry: number;
+                  };
                   const color = EXPIRY_COLORS[status];
                   return (
                     <tr
                       key={item.id}
-                      style={{ borderBottom: '1px solid #111827' }}
-                      onMouseEnter={e => (e.currentTarget.style.background = '#111827')}
+                      style={{ borderBottom: '1px solid rgba(148,163,184,0.08)' }}
+                      onMouseEnter={e => (e.currentTarget.style.background = 'rgba(2,6,23,0.35)')}
                       onMouseLeave={e => (e.currentTarget.style.background = 'transparent')}
                     >
                       <td style={{ padding: '13px 16px' }}>
@@ -355,8 +362,8 @@ export function PantryPage() {
                       </td>
                       <td style={{ padding: '13px 16px', fontSize: 14, color: '#9ca3af' }}>{item.quantity} {item.unit}</td>
                       <td style={{ padding: '13px 16px' }}>
-                        <span style={{ background: '#111827', borderRadius: 8, padding: '3px 10px', fontSize: 12, color: '#9ca3af', fontWeight: 600 }}>
-                          {CATEGORY_ICONS[item.category]} {item.category}
+                        <span style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.14)', borderRadius: 999, padding: '4px 10px', fontSize: 12, color: 'rgba(226,232,240,0.75)', fontWeight: 650 }}>
+                          {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
                         </span>
                       </td>
                       <td style={{ padding: '13px 16px' }}>
@@ -368,13 +375,13 @@ export function PantryPage() {
                         <div style={{ display: 'flex', gap: 6, justifyContent: 'flex-end' }}>
                           <button
                             onClick={() => { setModalItem(item); setModalOpen(true); }}
-                            style={{ background: '#1f2937', border: 'none', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#9ca3af', cursor: 'pointer' }}
+                            style={{ background: 'rgba(2,6,23,0.35)', border: '1px solid rgba(148,163,184,0.16)', borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 650, color: 'rgba(226,232,240,0.78)', cursor: 'pointer' }}
                           >
                             Edit
                           </button>
                           <button
                             onClick={() => setDeleteTarget(item)}
-                            style={{ background: 'none', border: '1px solid #374151', borderRadius: 8, padding: '6px 12px', fontSize: 12, fontWeight: 600, color: '#ef4444', cursor: 'pointer' }}
+                            style={{ background: 'transparent', border: '1px solid rgba(248,113,113,0.35)', borderRadius: 10, padding: '7px 12px', fontSize: 12, fontWeight: 650, color: 'rgba(248,113,113,0.95)', cursor: 'pointer' }}
                           >
                             Delete
                           </button>

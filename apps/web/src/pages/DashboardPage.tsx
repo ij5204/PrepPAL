@@ -64,23 +64,23 @@ export function DashboardPage() {
       <h1 style={{ fontSize: 26, fontWeight: 800, color: '#f9fafb', marginBottom: 4 }}>
         Dashboard
       </h1>
-      <p style={{ color: '#9ca3af', marginBottom: 28, fontSize: 14 }}>
+      <p style={{ color: 'rgba(148,163,184,0.9)', marginBottom: 28, fontSize: 14 }}>
         {new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' })}
       </p>
 
       {/* Stat cards */}
       <div style={{ display: 'grid', gridTemplateColumns: 'repeat(4, 1fr)', gap: 12, marginBottom: 24 }}>
         {[
-          { label: 'Calories', value: consumed.calories, goal: profile.daily_calorie_goal, unit: 'kcal', color: isOver ? '#ef4444' : '#22c55e' },
+          { label: 'Calories', value: consumed.calories, goal: profile.daily_calorie_goal, unit: 'kcal', color: isOver ? '#ef4444' : '#a5b4fc' },
           { label: 'Protein', value: Math.round(consumed.protein), goal: goals.protein, unit: 'g', color: '#3b82f6' },
           { label: 'Carbs', value: Math.round(consumed.carbs), goal: goals.carbs, unit: 'g', color: '#f59e0b' },
           { label: 'Fat', value: Math.round(consumed.fat), goal: goals.fat, unit: 'g', color: '#f97316' },
         ].map(({ label, value, goal, unit, color }) => (
-          <div key={label} style={{ background: '#1a1f2e', borderRadius: 14, padding: 16, border: '1px solid #1f2937' }}>
+          <div key={label} style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 16, border: '1px solid rgba(148,163,184,0.14)', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
             <div style={{ fontSize: 12, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 8 }}>{label}</div>
             <div style={{ fontSize: 28, fontWeight: 800, color }}>{value}</div>
             <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>of {goal} {unit}</div>
-            <div style={{ height: 4, background: '#374151', borderRadius: 2, marginTop: 10 }}>
+            <div style={{ height: 5, background: 'rgba(148,163,184,0.14)', borderRadius: 999, marginTop: 10 }}>
               <div style={{ height: '100%', borderRadius: 2, background: color, width: `${Math.min(value / goal, 1) * 100}%` }} />
             </div>
           </div>
@@ -88,27 +88,27 @@ export function DashboardPage() {
       </div>
 
       {/* Calorie bar */}
-      <div style={{ background: '#1a1f2e', borderRadius: 14, padding: 20, border: '1px solid #1f2937', marginBottom: 24 }}>
+      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 20, border: '1px solid rgba(148,163,184,0.14)', marginBottom: 24, boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
         <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: 10 }}>
           <span style={{ fontSize: 14, fontWeight: 700, color: '#f9fafb' }}>Daily Calories</span>
           <span style={{ fontSize: 14, color: '#9ca3af' }}>{consumed.calories} / {profile.daily_calorie_goal} kcal</span>
         </div>
-        <div style={{ height: 12, background: '#374151', borderRadius: 6, overflow: 'hidden' }}>
-          <div style={{ height: '100%', borderRadius: 6, background: isOver ? '#ef4444' : '#22c55e', width: `${calPct * 100}%`, transition: 'width 0.3s ease' }} />
+        <div style={{ height: 12, background: 'rgba(148,163,184,0.14)', borderRadius: 999, overflow: 'hidden' }}>
+          <div style={{ height: '100%', borderRadius: 999, background: isOver ? '#ef4444' : '#a5b4fc', width: `${calPct * 100}%`, transition: 'width 0.3s ease' }} />
         </div>
       </div>
 
       {/* Weekly chart */}
-      <div style={{ background: '#1a1f2e', borderRadius: 14, padding: 20, border: '1px solid #1f2937', marginBottom: 24 }}>
+      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 20, border: '1px solid rgba(148,163,184,0.14)', marginBottom: 24, boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#f9fafb', marginBottom: 16 }}>This Week</div>
         <ResponsiveContainer width="100%" height={180}>
           <BarChart data={weekData} barSize={28}>
             <XAxis dataKey="day" tick={{ fill: '#6b7280', fontSize: 12 }} axisLine={false} tickLine={false} />
             <YAxis hide />
-            <Tooltip contentStyle={{ background: '#1f2937', border: 'none', borderRadius: 8, color: '#f9fafb' }} />
+            <Tooltip contentStyle={{ background: 'rgba(2,6,23,0.85)', border: '1px solid rgba(148,163,184,0.12)', borderRadius: 12, color: '#f8fafc' }} />
             <Bar dataKey="calories" radius={[6, 6, 0, 0]}>
               {weekData.map((_, i) => (
-                <Cell key={i} fill={i === weekData.length - 1 ? '#22c55e' : '#374151'} />
+                <Cell key={i} fill={i === weekData.length - 1 ? '#a5b4fc' : 'rgba(148,163,184,0.22)'} />
               ))}
             </Bar>
           </BarChart>
@@ -116,19 +116,19 @@ export function DashboardPage() {
       </div>
 
       {/* Today's meals */}
-      <div style={{ background: '#1a1f2e', borderRadius: 14, padding: 20, border: '1px solid #1f2937' }}>
+      <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, padding: 20, border: '1px solid rgba(148,163,184,0.14)', boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
         <div style={{ fontSize: 14, fontWeight: 700, color: '#f9fafb', marginBottom: 12 }}>Today's Meals</div>
         {todayLogs.length === 0
           ? <p style={{ color: '#6b7280', fontSize: 14 }}>No meals logged yet today.</p>
           : todayLogs.map((m: any) => (
-            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '1px solid #1f2937' }}>
+            <div key={m.id} style={{ display: 'flex', justifyContent: 'space-between', padding: '10px 0', borderTop: '1px solid rgba(148,163,184,0.12)' }}>
               <div>
                 <div style={{ fontSize: 14, fontWeight: 600, color: '#f9fafb' }}>{m.meal_name}</div>
                 <div style={{ fontSize: 12, color: '#6b7280', marginTop: 2 }}>
                   {new Date(m.eaten_at).toLocaleTimeString('en-US', { hour: 'numeric', minute: '2-digit' })}
                 </div>
               </div>
-              <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e' }}>{m.calories} kcal</div>
+              <div style={{ fontSize: 14, fontWeight: 750, color: '#a5b4fc' }}>{m.calories} kcal</div>
             </div>
           ))}
       </div>

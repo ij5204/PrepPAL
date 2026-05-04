@@ -141,9 +141,9 @@ export function ProfilePage() {
         <Row label="Fitness goal">
           <Select value={form.fitness_goal} onChange={v => set('fitness_goal', v)}
             options={[
-              { value: 'cutting', label: '🔥 Cutting (lose fat)' },
-              { value: 'maintaining', label: '⚖️ Maintaining' },
-              { value: 'bulking', label: '💪 Bulking (gain muscle)' },
+              { value: 'cutting', label: 'Cutting (lose fat)' },
+              { value: 'maintaining', label: 'Maintaining' },
+              { value: 'bulking', label: 'Bulking (gain muscle)' },
             ]} />
         </Row>
         <Row label={`Goal weight (${form.weight_unit})`}>
@@ -156,9 +156,9 @@ export function ProfilePage() {
 
       {/* AI Recommendation */}
       {goalResult && (
-        <div style={{ background: '#052e16', border: '1px solid #166534', borderRadius: 14, padding: 20, marginBottom: 24 }}>
-          <div style={{ fontSize: 14, fontWeight: 700, color: '#22c55e', marginBottom: 16 }}>
-            📊 Your personalised recommendation
+        <div style={{ background: 'rgba(99,102,241,0.10)', border: '1px solid rgba(99,102,241,0.24)', borderRadius: 16, padding: 20, marginBottom: 24 }}>
+          <div style={{ fontSize: 14, fontWeight: 750, color: '#e0e7ff', marginBottom: 16 }}>
+            Recommended targets
           </div>
 
           <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 16 }}>
@@ -168,9 +168,9 @@ export function ProfilePage() {
               { label: 'Target calories', value: `${goalResult.recommendedCalories} kcal`, desc: 'To hit your goal' },
               { label: 'Pace', value: formatWeightChange(goalResult.weeklyChange, form.weight_unit), desc: `~${goalResult.weeksToGoal} weeks to goal` },
             ].map(({ label, value, desc }) => (
-              <div key={label} style={{ background: '#0f1117', borderRadius: 10, padding: 12 }}>
+              <div key={label} style={{ background: 'rgba(2,6,23,0.55)', borderRadius: 12, padding: 12, border: '1px solid rgba(148,163,184,0.12)' }}>
                 <div style={{ fontSize: 11, color: '#6b7280', fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: 18, fontWeight: 800, color: '#22c55e', margin: '4px 0' }}>{value}</div>
+                <div style={{ fontSize: 18, fontWeight: 850, color: '#c7d2fe', margin: '4px 0' }}>{value}</div>
                 <div style={{ fontSize: 11, color: '#6b7280' }}>{desc}</div>
               </div>
             ))}
@@ -182,7 +182,7 @@ export function ProfilePage() {
               { label: 'Carbs', value: `${goalResult.carbs_g}g`, color: '#f59e0b' },
               { label: 'Fat', value: `${goalResult.fat_g}g`, color: '#f97316' },
             ].map(({ label, value, color }) => (
-              <div key={label} style={{ flex: 1, background: '#0f1117', borderRadius: 10, padding: 10, textAlign: 'center' }}>
+              <div key={label} style={{ flex: 1, background: 'rgba(2,6,23,0.55)', borderRadius: 12, padding: 10, textAlign: 'center', border: '1px solid rgba(148,163,184,0.12)' }}>
                 <div style={{ fontSize: 16, fontWeight: 800, color }}>{value}</div>
                 <div style={{ fontSize: 11, color: '#6b7280', marginTop: 2 }}>{label}</div>
               </div>
@@ -190,14 +190,19 @@ export function ProfilePage() {
           </div>
 
           {goalResult.isAggressive && (
-            <div style={{ background: '#422006', borderRadius: 8, padding: 10, marginBottom: 10, fontSize: 13, color: '#fbbf24' }}>
-              ⚠️ Your timeline is aggressive. Consider extending your goal date for a safer pace.
+            <div style={{ background: 'rgba(245,158,11,0.10)', borderRadius: 12, padding: 10, marginBottom: 10, fontSize: 13, color: 'rgba(251,191,36,0.95)', border: '1px solid rgba(245,158,11,0.22)' }}>
+              Your timeline is aggressive. Consider extending your goal date for a safer pace.
             </div>
           )}
 
           <button onClick={applyRecommendation} style={{
-            width: '100%', background: '#22c55e', color: '#0f1117',
-            border: 'none', borderRadius: 10, padding: '11px', fontSize: 14,
+            width: '100%',
+            background: 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+            color: '#0b0f17',
+            border: '1px solid rgba(99,102,241,0.35)',
+            borderRadius: 12,
+            padding: '11px',
+            fontSize: 14,
             fontWeight: 700, cursor: 'pointer',
           }}>
             Apply these targets to my account
@@ -217,8 +222,13 @@ export function ProfilePage() {
 
       {/* Save */}
       <button onClick={handleSave} disabled={saving} style={{
-        width: '100%', background: saved ? '#166534' : '#22c55e',
-        color: '#0f1117', border: 'none', borderRadius: 14,
+        width: '100%',
+        background: saved
+          ? 'rgba(99,102,241,0.75)'
+          : 'linear-gradient(180deg, rgba(99,102,241,0.95), rgba(79,70,229,0.95))',
+        color: '#0b0f17',
+        border: '1px solid rgba(99,102,241,0.35)',
+        borderRadius: 14,
         padding: '15px', fontSize: 16, fontWeight: 700, cursor: 'pointer',
         transition: 'background 0.2s',
       }}>
@@ -230,7 +240,7 @@ export function ProfilePage() {
 
 function Section({ title, children }: { title: string; children: React.ReactNode }) {
   return (
-    <div style={{ background: '#1a1f2e', borderRadius: 14, border: '1px solid #1f2937', padding: 20, marginBottom: 16 }}>
+    <div style={{ background: 'rgba(15, 23, 42, 0.72)', borderRadius: 16, border: '1px solid rgba(148,163,184,0.14)', padding: 20, marginBottom: 16, boxShadow: '0 10px 30px rgba(0,0,0,0.30)' }}>
       <div style={{ fontSize: 13, fontWeight: 700, color: '#6b7280', textTransform: 'uppercase', letterSpacing: '0.5px', marginBottom: 16 }}>{title}</div>
       <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
         {children}
@@ -253,7 +263,7 @@ function Input({ value, onChange, placeholder, type = 'text' }: {
 }) {
   return (
     <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder}
-      style={{ width: '100%', background: '#111827', border: '1px solid #374151', borderRadius: 10, padding: '10px 14px', fontSize: 14, color: '#f9fafb', outline: 'none' }} />
+      style={{ width: '100%', background: 'rgba(2,6,23,0.55)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: '#f8fafc', outline: 'none' }} />
   );
 }
 
@@ -263,7 +273,7 @@ function Select({ value, onChange, options }: {
 }) {
   return (
     <select value={value} onChange={e => onChange(e.target.value)}
-      style={{ width: '100%', background: '#111827', border: '1px solid #374151', borderRadius: 10, padding: '10px 14px', fontSize: 14, color: '#f9fafb', outline: 'none', cursor: 'pointer' }}>
+      style={{ width: '100%', background: 'rgba(2,6,23,0.55)', border: '1px solid rgba(148,163,184,0.18)', borderRadius: 12, padding: '10px 14px', fontSize: 14, color: '#f8fafc', outline: 'none', cursor: 'pointer' }}>
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
   );
