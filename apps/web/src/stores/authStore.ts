@@ -29,7 +29,15 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     set({ session, user: session?.user ?? null, loading: false, initialized: true });
     if (session?.user) await get().refreshProfile();
 
-    supabase.auth.onAuthStateChange(async (_event, session) => {
+    supabase.auth.onAuthStateChange(async (event, session) => {
+      // TOKEN_REFRESHED: just update session, don't clear anything
+      if (event === 'TOKEN_REFRESHED') {
+        set({ session, user: session?.user ?? null });
+        return;
+      }
+      // INITIAL_SESSION: already handled by getSession() above, skip
+      if (event === 'INITIAL_SESSION') return;
+
       set({ session, user: session?.user ?? null });
       if (session?.user) await get().refreshProfile();
       else set({ profile: null });

@@ -60,12 +60,51 @@ function getGreeting() {
   return 'Good evening';
 }
 
-function calcGoals(profile: any) {
-  const protein = profile.protein_goal_g ?? Math.round((profile.daily_calorie_goal * 0.25) / 4);
-  const carbs = Math.round(((profile.daily_calorie_goal - protein * 4) * 0.55) / 4);
-  const fat = Math.round(((profile.daily_calorie_goal - protein * 4) * 0.45) / 9);
+function calcGoals(profile: any): { protein: number; carbs: number; fat: number } {
+  const calGoal: number = profile.daily_calorie_goal;
+  const fitnessGoal: string = (profile.fitness_goal ?? 'maintaining').toLowerCase();
+
+  // If user explicitly set a protein goal, honour it
+  const explicitProtein: number | null = profile.protein_goal_g ?? null;
+
+  // Convert stored weight to lbs
+  const weightLbs: number | null = (() => {
+    const w = profile.current_weight;
+    if (!w) return null;
+    return profile.weight_unit === 'kg' ? w * 2.20462 : w;
+  })();
+
+  // ── Step 1: Protein ────────────────────────────────────────────────────────
+  let protein: number;
+  if (explicitProtein != null) {
+    protein = explicitProtein;
+  } else if (weightLbs) {
+    if (fitnessGoal === 'cutting')      protein = Math.round(weightLbs * 0.9);
+    else if (fitnessGoal === 'bulking') protein = Math.round(weightLbs * 0.8);
+    else                                protein = Math.round(weightLbs * 0.75);
+  } else {
+    // No weight on file — use percentage of calories as fallback
+    const pct = fitnessGoal === 'cutting' ? 0.30 : 0.25;
+    protein = Math.round((calGoal * pct) / 4);
+  }
+
+  // ── Step 2: Fat ────────────────────────────────────────────────────────────
+  let fat: number;
+  if (weightLbs) {
+    if (fitnessGoal === 'cutting')      fat = Math.round(weightLbs * 0.35);
+    else if (fitnessGoal === 'bulking') fat = Math.round(weightLbs * 0.40);
+    else                                fat = Math.round(weightLbs * 0.35);
+  } else {
+    const fatPct = fitnessGoal === 'cutting' ? 0.20 : 0.25;
+    fat = Math.round((calGoal * fatPct) / 9);
+  }
+
+  // ── Step 3: Carbs fill the remaining budget ────────────────────────────────
+  const carbs = Math.max(0, Math.round((calGoal - protein * 4 - fat * 9) / 4));
+
   return { protein, carbs, fat };
 }
+
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 
@@ -74,6 +113,8 @@ export function DashboardPage() {
   const navigate = useNavigate();
   const [todayLogs, setTodayLogs] = useState<any[]>([]);
   const [weekData, setWeekData] = useState<{ day: string; pct: number }[]>([]);
+  const [expiryItems, setExpiryItems] = useState<any[]>([]);
+  const [pantryCount, setPantryCount] = useState<number | null>(null);
 
   useEffect(() => {
     if (!profile) return;
@@ -94,6 +135,36 @@ export function DashboardPage() {
           pct: Math.min(((data ?? []).reduce((s: number, m: any) => s + m.calories, 0)) / (profile.daily_calorie_goal || 1), 1),
         }));
     })).then(setWeekData);
+
+    // Fetch pantry items expiring within 14 days
+    const in14Days = new Date(today);
+    in14Days.setDate(in14Days.getDate() + 14);
+    supabase.from('pantry_items')
+      .select('id, name, quantity, unit, category, expiry_date')
+      .lte('expiry_date', in14Days.toISOString().split('T')[0])
+      .gte('expiry_date', today.toISOString().split('T')[0])
+      .order('expiry_date')
+      .limit(6)
+      .then(({ data }) => {
+        const rows = (data ?? []).map((item: any) => {
+          const expDate = new Date(item.expiry_date + 'T00:00:00');
+          const diffDays = Math.round((expDate.getTime() - today.getTime()) / 86400000);
+          const CATEGORY_LABELS: Record<string, string> = {
+            produce: 'Produce', dairy: 'Dairy', protein: 'Protein',
+            pantry: 'Pantry', spice: 'Spice', other: 'Other',
+          };
+          const cat = `${CATEGORY_LABELS[item.category] ?? 'Other'} · ${item.quantity} ${item.unit}`;
+          let dotColor = 'var(--acc)'; let pillCls = 'pillG'; let label = `${diffDays} days`;
+          if (diffDays === 0) { dotColor = 'var(--acc2)'; pillCls = 'pillR'; label = 'Today'; }
+          else if (diffDays <= 3) { dotColor = '#FFA020'; pillCls = 'pillO'; }
+          return { name: item.name, cat, dotColor, pillCls, label };
+        });
+        setExpiryItems(rows);
+      });
+
+    // Total pantry item count
+    supabase.from('pantry_items').select('*', { count: 'exact', head: true })
+      .then(({ count }) => setPantryCount(count ?? 0));
   }, [profile]);
 
   if (!profile) return (
@@ -115,14 +186,6 @@ export function DashboardPage() {
   const calGoal = profile.daily_calorie_goal;
   const remaining = Math.max(calGoal - consumed.calories, 0);
   const proteinPct = Math.round(Math.min(consumed.protein / (goals.protein || 1), 1) * 100);
-
-  // Expiry items — placeholder until pantry data is wired in
-  const expiryItems = [
-    { name: 'Chicken Breast', cat: 'Protein · 350g', dotColor: 'var(--acc2)', pillCls: 'pillR', label: 'Today' },
-    { name: 'Spinach', cat: 'Produce · 1 bag', dotColor: '#FFA020', pillCls: 'pillO', label: '2 days' },
-    { name: 'Greek Yogurt', cat: 'Dairy · 500g', dotColor: '#FFA020', pillCls: 'pillO', label: '3 days' },
-    { name: 'Eggs', cat: 'Protein · 8 pcs', dotColor: 'var(--acc)', pillCls: 'pillG', label: '12 days' },
-  ];
 
   const now = new Date();
   const dateStr = now.toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric', year: 'numeric' });
@@ -161,8 +224,11 @@ export function DashboardPage() {
         </div>
         <div className="kpi">
           <div className="kpiLabel">Pantry Items</div>
-          <div className="kpiVal">— <span className="kpiUnit">items</span></div>
-          <div className="kpiDelta dn">▼ check pantry</div>
+          <div className="kpiVal">
+            {pantryCount === null ? '—' : pantryCount.toLocaleString()}
+            <span className="kpiUnit"> items</span>
+          </div>
+          <div className="kpiDelta" style={{ color: 'var(--txt2)' }}>in your pantry</div>
         </div>
       </div>
 
@@ -244,18 +310,24 @@ export function DashboardPage() {
               <div className="cardTitle">Expiring Soon</div>
               <div className="cardLink" onClick={() => navigate('/pantry')}>view pantry</div>
             </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-              {expiryItems.map((item, i) => (
-                <div className="expRow" key={i}>
-                  <div className="expDot" style={{ background: item.dotColor }} />
-                  <div style={{ flex: 1 }}>
-                    <div className="expName">{item.name}</div>
-                    <div className="expCat">{item.cat}</div>
+            {expiryItems.length === 0 ? (
+              <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: 'var(--txt2)' }}>
+                🎉 No items expiring in the next 2 weeks!
+              </div>
+            ) : (
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                {expiryItems.map((item, i) => (
+                  <div className="expRow" key={i}>
+                    <div className="expDot" style={{ background: item.dotColor }} />
+                    <div style={{ flex: 1 }}>
+                      <div className="expName">{item.name}</div>
+                      <div className="expCat">{item.cat}</div>
+                    </div>
+                    <div className={`expPill ${item.pillCls}`}>{item.label}</div>
                   </div>
-                  <div className={`expPill ${item.pillCls}`}>{item.label}</div>
-                </div>
-              ))}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* AI meals ready accent card */}
@@ -264,7 +336,11 @@ export function DashboardPage() {
               <div className="cardTitle" style={{ color: 'var(--acc)' }}>⚡ AI Meals Ready</div>
             </div>
             <div style={{ fontSize: 13, color: 'var(--txt2)', lineHeight: 1.65, marginBottom: 14 }}>
-              3 suggestions generated from your pantry. Chicken breast expires today — use it now before it's wasted.
+              {expiryItems.filter(i => i.pillCls === 'pillR').length > 0
+                ? `${expiryItems.filter(i => i.pillCls === 'pillR').map(i => i.name).join(', ')} expire${expiryItems.filter(i => i.pillCls === 'pillR').length === 1 ? 's' : ''} today — use ${expiryItems.filter(i => i.pillCls === 'pillR').length === 1 ? 'it' : 'them'} before it's wasted.`
+                : pantryCount && pantryCount > 0
+                  ? `${pantryCount} pantry item${pantryCount > 1 ? 's' : ''} available. Generate meal ideas from your pantry.`
+                  : 'Add items to your pantry to get AI-powered meal suggestions.'}
             </div>
             <button className="tbBtn" style={{ width: '100%', padding: 11 }} onClick={() => navigate('/meals')}>
               VIEW SUGGESTIONS →

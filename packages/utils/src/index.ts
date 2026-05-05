@@ -96,21 +96,84 @@ export function startOfToday(): Date {
 export function calcProteinGoal(user: {
   protein_goal_g: number | null;
   daily_calorie_goal: number;
+  current_weight?: number | null;
+  weight_unit?: 'kg' | 'lbs' | null;
+  fitness_goal?: string | null;
 }): number {
+  // If the user has set an explicit protein goal, always honour it
   if (user.protein_goal_g != null) return user.protein_goal_g;
-  // Estimate: 25% of calories from protein, 4 kcal/g
-  return Math.round((user.daily_calorie_goal * 0.25) / 4);
+
+  // Convert weight to lbs for the standard g/lb formula
+  const weightLbs = (() => {
+    if (!user.current_weight) return null;
+    return user.weight_unit === 'kg'
+      ? user.current_weight * 2.20462
+      : user.current_weight;
+  })();
+
+  const goal = (user.fitness_goal ?? 'maintaining').toLowerCase();
+
+  if (weightLbs) {
+    // Cutting: 0.9 g/lb to preserve muscle in a deficit
+    if (goal === 'cutting')    return Math.round(weightLbs * 0.9);
+    // Bulking: 0.8 g/lb — enough to support hypertrophy without excess
+    if (goal === 'bulking')    return Math.round(weightLbs * 0.8);
+    // Maintaining: 0.75 g/lb balanced middle ground
+    return Math.round(weightLbs * 0.75);
+  }
+
+  // No weight stored — fall back to percentage-of-calories
+  // Cutting: 30% of cals from protein, Bulking: 25%, Maintaining: 25%
+  const pct = goal === 'cutting' ? 0.30 : 0.25;
+  return Math.round((user.daily_calorie_goal * pct) / 4);
 }
 
 export function calcMacroGoals(user: {
   protein_goal_g: number | null;
   daily_calorie_goal: number;
+  current_weight?: number | null;
+  weight_unit?: 'kg' | 'lbs' | null;
+  fitness_goal?: string | null;
 }): { protein: number; carbs: number; fat: number } {
+  const goal = (user.fitness_goal ?? 'maintaining').toLowerCase();
+
   const protein = calcProteinGoal(user);
   const proteinCals = protein * 4;
-  const remaining = user.daily_calorie_goal - proteinCals;
-  const carbs = Math.round((remaining * 0.55) / 4);
-  const fat = Math.round((remaining * 0.45) / 9);
+
+  const weightLbs = (() => {
+    if (!user.current_weight) return null;
+    return user.weight_unit === 'kg'
+      ? user.current_weight * 2.20462
+      : user.current_weight;
+  })();
+
+  let fat: number;
+
+  if (weightLbs) {
+    // Cutting: minimum fat floor (0.35 g/lb) to maintain hormonal health
+    if (goal === 'cutting') {
+      fat = Math.round(weightLbs * 0.35);
+    }
+    // Bulking: slightly higher fat (0.4 g/lb) to support anabolic hormones
+    else if (goal === 'bulking') {
+      fat = Math.round(weightLbs * 0.40);
+    }
+    // Maintaining: 0.35 g/lb balanced
+    else {
+      fat = Math.round(weightLbs * 0.35);
+    }
+  } else {
+    // No weight — set fat as a percentage of total calories
+    // Cutting: 20%, Bulking: 25%, Maintaining: 25%
+    const fatPct = goal === 'cutting' ? 0.20 : 0.25;
+    fat = Math.round((user.daily_calorie_goal * fatPct) / 9);
+  }
+
+  // Carbs fill the remaining calorie budget
+  const fatCals = fat * 9;
+  const carbsRemaining = user.daily_calorie_goal - proteinCals - fatCals;
+  const carbs = Math.max(0, Math.round(carbsRemaining / 4));
+
   return { protein, carbs, fat };
 }
 

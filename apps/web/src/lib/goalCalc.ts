@@ -75,13 +75,39 @@ export function calculateGoals(inputs: GoalInputs): GoalResult {
   const isAggressive = Math.abs(dailyDeficit) > 700;
   const isSafe = Math.abs(weeklyChange) <= 1;
 
-  // Macros
-  // Protein: 2g per kg of bodyweight for active people
-  const protein_g = Math.round(weightKg * 2);
+  // ── Macros: goal-specific approach ──────────────────────────────────────────
+  // Step 1: Protein — anchor based on fitness goal (g/lb bodyweight)
+  const weightLbs = weightKg * 2.20462;
+  let protein_g: number;
+  if (inputs.fitnessGoal === 'cutting') {
+    // 0.9 g/lb: high protein to preserve muscle in a calorie deficit
+    protein_g = Math.round(weightLbs * 0.9);
+  } else if (inputs.fitnessGoal === 'bulking') {
+    // 0.8 g/lb: adequate for hypertrophy, not excessive
+    protein_g = Math.round(weightLbs * 0.8);
+  } else {
+    // 0.75 g/lb: maintenance baseline
+    protein_g = Math.round(weightLbs * 0.75);
+  }
+
+  // Step 2: Fat — minimum baseline (g/lb) for hormonal health
+  let fat_g: number;
+  if (inputs.fitnessGoal === 'cutting') {
+    // Minimum fat floor 0.35 g/lb keeps hormones intact during deficit
+    fat_g = Math.round(weightLbs * 0.35);
+  } else if (inputs.fitnessGoal === 'bulking') {
+    // Slightly higher at 0.4 g/lb to support anabolic hormone environment
+    fat_g = Math.round(weightLbs * 0.40);
+  } else {
+    // Maintaining: balanced at 0.35 g/lb
+    fat_g = Math.round(weightLbs * 0.35);
+  }
+
+  // Step 3: Carbs fill the remaining calorie budget
   const proteinCals = protein_g * 4;
-  const remaining = recommendedCalories - proteinCals;
-  const fat_g = Math.round((remaining * 0.3) / 9);
-  const carbs_g = Math.round((remaining * 0.7) / 4);
+  const fatCals = fat_g * 9;
+  const carbsRemaining = recommendedCalories - proteinCals - fatCals;
+  const carbs_g = Math.max(0, Math.round(carbsRemaining / 4));
 
   return {
     bmr: Math.round(bmr),

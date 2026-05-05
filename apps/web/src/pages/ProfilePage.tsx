@@ -99,143 +99,184 @@ export function ProfilePage() {
   const fitnessGoalLabel = { cutting: '🔥 Cutting', maintaining: '⚖️ Maintaining', bulking: '💪 Bulking' }[form.fitness_goal];
 
   return (
-    <div style={{ maxWidth: 680 }}>
-      {/* Avatar header */}
-      <div style={{ textAlign: 'center', marginBottom: 32 }}>
+    <div className="pageWrapper">
+      {/* Header */}
+      <div className="pageHeader">
+        <div>
+          <h1 className="pageTitle">Profile</h1>
+          <p className="pageSub">Manage your personal info, body stats, and nutrition targets</p>
+        </div>
+        <button
+          onClick={handleSave}
+          disabled={saving}
+          className="btn btnPrimary"
+          style={{ padding: '10px 28px', fontSize: 14 }}
+        >
+          {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
+        </button>
+      </div>
+
+      {/* Avatar strip */}
+      <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 'var(--rad-lg)', padding: '18px 24px' }}>
         <div className="avatarLg">{initials}</div>
-        <h1 style={{ fontSize: 24, fontWeight: 800, margin: '0 0 4px', letterSpacing: '-0.02em' }}>{profile?.name || 'Your Profile'}</h1>
-        <div style={{ fontSize: 13, color: 'var(--text-muted)' }}>
-          {form.fitness_goal && (
-            <span style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border-strong)', borderRadius: 999, padding: '3px 12px', fontSize: 12, fontWeight: 700 }}>
-              {fitnessGoalLabel}
-            </span>
-          )}
+        <div>
+          <div style={{ fontSize: 20, fontWeight: 800, color: 'var(--txt)', letterSpacing: '-0.01em' }}>{profile?.name || 'Your Profile'}</div>
+          <div style={{ display: 'flex', gap: 8, marginTop: 6, flexWrap: 'wrap' }}>
+            {form.fitness_goal && (
+              <span style={{ background: 'var(--accent-bg)', color: 'var(--accent)', border: '1px solid var(--accent-border-strong)', borderRadius: 999, padding: '3px 12px', fontSize: 12, fontWeight: 700 }}>
+                {fitnessGoalLabel}
+              </span>
+            )}
+            {form.daily_calorie_goal && (
+              <span style={{ background: 'var(--surf2)', color: 'var(--txt2)', border: '1px solid var(--bdr2)', borderRadius: 999, padding: '3px 12px', fontSize: 12 }}>
+                {form.daily_calorie_goal} kcal/day
+              </span>
+            )}
+            {form.current_weight && (
+              <span style={{ background: 'var(--surf2)', color: 'var(--txt2)', border: '1px solid var(--bdr2)', borderRadius: 999, padding: '3px 12px', fontSize: 12 }}>
+                {form.current_weight} {form.weight_unit}
+              </span>
+            )}
+          </div>
         </div>
       </div>
 
-      {/* Personal Info */}
-      <Section title="Personal Info" icon="👤">
-        <Row label="Name">
-          <Input value={form.name} onChange={v => set('name', v)} placeholder="Your name" />
-        </Row>
-        <Row label="Gender">
-          <Select value={form.gender} onChange={v => set('gender', v)}
-            options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }, { value: 'other', label: 'Other' }]} />
-        </Row>
-        <Row label="Units">
-          <div style={{ display: 'flex', gap: 8 }}>
-            <Select value={form.weight_unit} onChange={v => set('weight_unit', v)}
-              options={[{ value: 'kg', label: 'kg' }, { value: 'lbs', label: 'lbs' }]} />
-            <Select value={form.height_unit} onChange={v => set('height_unit', v)}
-              options={[{ value: 'cm', label: 'cm' }, { value: 'ft', label: 'ft' }]} />
-          </div>
-        </Row>
-      </Section>
-
-      {/* Body Stats */}
-      <Section title="Body Stats" icon="📊">
-        <Row label={`Current weight (${form.weight_unit})`}>
-          <Input value={form.current_weight} onChange={v => set('current_weight', v)} placeholder="e.g. 75" type="number" />
-        </Row>
-        <Row label={`Height (${form.height_unit})`}>
-          <Input value={form.height} onChange={v => set('height', v)} placeholder={form.height_unit === 'cm' ? 'e.g. 175' : 'e.g. 5.9'} type="number" />
-        </Row>
-        <Row label="Activity level">
-          <Select value={form.activity_level} onChange={v => set('activity_level', v)}
-            options={[
-              { value: 'sedentary', label: 'Sedentary (desk job)' },
-              { value: 'light', label: 'Light (1-3x/week)' },
-              { value: 'moderate', label: 'Moderate (3-5x/week)' },
-              { value: 'active', label: 'Active (6-7x/week)' },
-            ]} />
-        </Row>
-      </Section>
-
-      {/* Weight Goal */}
-      <Section title="Weight Goal" icon="🎯">
-        <Row label="Fitness goal">
-          <Select value={form.fitness_goal} onChange={v => set('fitness_goal', v)}
-            options={[
-              { value: 'cutting', label: '🔥 Cutting (lose fat)' },
-              { value: 'maintaining', label: '⚖️ Maintaining' },
-              { value: 'bulking', label: '💪 Bulking (gain muscle)' },
-            ]} />
-        </Row>
-        <Row label={`Goal weight (${form.weight_unit})`}>
-          <Input value={form.goal_weight} onChange={v => set('goal_weight', v)} placeholder="e.g. 68" type="number" />
-        </Row>
-        <Row label="Target date">
-          <Input value={form.goal_date} onChange={v => set('goal_date', v)} type="date" />
-        </Row>
-      </Section>
-
-      {/* AI Recommendation */}
-      {goalResult && (
-        <div className="card animate-fade-in" style={{ padding: 22, marginBottom: 16, border: '1px solid var(--accent-border-strong)', background: 'linear-gradient(135deg, var(--accent-bg) 0%, transparent 60%)' }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
-            <span style={{ fontSize: 16 }}>✦</span>
-            <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>AI Recommended Targets</span>
-          </div>
-
-          <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 14 }}>
-            {[
-              { label: 'BMR', value: `${goalResult.bmr} kcal`, desc: 'Calories at rest' },
-              { label: 'TDEE', value: `${goalResult.tdee} kcal`, desc: 'Total daily burn' },
-              { label: 'Target', value: `${goalResult.recommendedCalories} kcal`, desc: 'To hit your goal' },
-              { label: 'Pace', value: formatWeightChange(goalResult.weeklyChange, form.weight_unit), desc: `~${goalResult.weeksToGoal} wks to goal` },
-            ].map(({ label, value, desc }) => (
-              <div key={label} style={{ background: 'var(--surface-2)', borderRadius: 12, padding: 12, border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
-                <div style={{ fontSize: 17, fontWeight: 850, color: 'var(--text-primary)', margin: '4px 0' }}>{value}</div>
-                <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>
+      {/* Two-column grid */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 16, alignItems: 'start' }}>
+        {/* LEFT column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Personal Info */}
+          <Section title="Personal Info" icon="👤">
+            <Row label="Name">
+              <Input value={form.name} onChange={v => set('name', v)} placeholder="Your name" />
+            </Row>
+            <Row label="Gender">
+              <Select value={form.gender} onChange={v => set('gender', v)}
+                options={[{ value: 'male', label: 'Male' }, { value: 'female', label: 'Female' }, { value: 'other', label: 'Other' }]} />
+            </Row>
+            <Row label="Units">
+              <div style={{ display: 'flex', gap: 8 }}>
+                <Select value={form.weight_unit} onChange={v => set('weight_unit', v)}
+                  options={[{ value: 'kg', label: 'kg' }, { value: 'lbs', label: 'lbs' }]} />
+                <Select value={form.height_unit} onChange={v => set('height_unit', v)}
+                  options={[{ value: 'cm', label: 'cm' }, { value: 'ft', label: 'ft' }]} />
               </div>
-            ))}
-          </div>
+            </Row>
+          </Section>
 
-          <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
-            {[
-              { label: 'Protein', value: `${goalResult.protein_g}g`, color: '#3b82f6' },
-              { label: 'Carbs', value: `${goalResult.carbs_g}g`, color: '#f59e0b' },
-              { label: 'Fat', value: `${goalResult.fat_g}g`, color: '#f97316' },
-            ].map(({ label, value, color }) => (
-              <div key={label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid var(--border)' }}>
-                <div style={{ fontSize: 15, fontWeight: 800, color }}>{value}</div>
-                <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
+          {/* Body Stats */}
+          <Section title="Body Stats" icon="📊">
+            <Row label={`Current weight (${form.weight_unit})`}>
+              <Input value={form.current_weight} onChange={v => set('current_weight', v)} placeholder="e.g. 75" type="number" />
+            </Row>
+            <Row label={`Height (${form.height_unit})`}>
+              <Input value={form.height} onChange={v => set('height', v)} placeholder={form.height_unit === 'cm' ? 'e.g. 175' : 'e.g. 5.9'} type="number" />
+            </Row>
+            <Row label="Activity level">
+              <Select value={form.activity_level} onChange={v => set('activity_level', v)}
+                options={[
+                  { value: 'sedentary', label: 'Sedentary (desk job)' },
+                  { value: 'light', label: 'Light (1-3x/week)' },
+                  { value: 'moderate', label: 'Moderate (3-5x/week)' },
+                  { value: 'active', label: 'Active (6-7x/week)' },
+                ]} />
+            </Row>
+          </Section>
+
+          {/* Weight Goal */}
+          <Section title="Weight Goal" icon="🎯">
+            <Row label="Fitness goal">
+              <Select value={form.fitness_goal} onChange={v => set('fitness_goal', v)}
+                options={[
+                  { value: 'cutting', label: '🔥 Cutting (lose fat)' },
+                  { value: 'maintaining', label: '⚖️ Maintaining' },
+                  { value: 'bulking', label: '💪 Bulking (gain muscle)' },
+                ]} />
+            </Row>
+            <Row label={`Goal weight (${form.weight_unit})`}>
+              <Input value={form.goal_weight} onChange={v => set('goal_weight', v)} placeholder="e.g. 68" type="number" />
+            </Row>
+            <Row label="Target date">
+              <Input value={form.goal_date} onChange={v => set('goal_date', v)} type="date" />
+            </Row>
+          </Section>
+        </div>
+
+        {/* RIGHT column */}
+        <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
+          {/* Nutrition Targets */}
+          <Section title="Nutrition Targets" icon="🥗">
+            <Row label="Daily calorie goal">
+              <Input value={form.daily_calorie_goal} onChange={v => set('daily_calorie_goal', v)} placeholder="e.g. 2200" type="number" />
+            </Row>
+            <Row label="Daily protein goal (g)">
+              <Input value={form.protein_goal_g} onChange={v => set('protein_goal_g', v)} placeholder="e.g. 150" type="number" />
+            </Row>
+            <div style={{ fontSize: 12, color: 'var(--txt2)', lineHeight: 1.5, marginTop: 4, padding: '10px 14px', background: 'var(--surf2)', borderRadius: 10 }}>
+              💡 Leave protein goal blank to auto-calculate based on your weight and fitness goal.
+            </div>
+          </Section>
+
+          {/* AI Recommendation */}
+          {goalResult && (
+            <div className="card animate-fade-in" style={{ padding: 22, border: '1px solid var(--accent-border-strong)', background: 'linear-gradient(135deg, var(--accent-bg) 0%, transparent 60%)' }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 16 }}>
+                <span style={{ fontSize: 16 }}>✦</span>
+                <span style={{ fontSize: 14, fontWeight: 800, color: 'var(--text-primary)' }}>AI Recommended Targets</span>
               </div>
-            ))}
-          </div>
 
-          {goalResult.isAggressive && (
-            <div className="calloutWarn" style={{ marginBottom: 12 }}>
-              Your timeline is aggressive. Consider extending your goal date for a safer pace.
+              <div style={{ display: 'grid', gridTemplateColumns: 'repeat(2, 1fr)', gap: 10, marginBottom: 14 }}>
+                {[
+                  { label: 'BMR', value: `${goalResult.bmr} kcal`, desc: 'Calories at rest' },
+                  { label: 'TDEE', value: `${goalResult.tdee} kcal`, desc: 'Total daily burn' },
+                  { label: 'Target', value: `${goalResult.recommendedCalories} kcal`, desc: 'To hit your goal' },
+                  { label: 'Pace', value: formatWeightChange(goalResult.weeklyChange, form.weight_unit), desc: `~${goalResult.weeksToGoal} wks to goal` },
+                ].map(({ label, value, desc }) => (
+                  <div key={label} style={{ background: 'var(--surface-2)', borderRadius: 12, padding: 12, border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-muted)', fontWeight: 750, textTransform: 'uppercase', letterSpacing: '0.5px' }}>{label}</div>
+                    <div style={{ fontSize: 17, fontWeight: 850, color: 'var(--text-primary)', margin: '4px 0' }}>{value}</div>
+                    <div style={{ fontSize: 11, color: 'var(--text-muted)' }}>{desc}</div>
+                  </div>
+                ))}
+              </div>
+
+              <div style={{ display: 'flex', gap: 8, marginBottom: 14 }}>
+                {[
+                  { label: 'Protein', value: `${goalResult.protein_g}g`, color: '#3b82f6' },
+                  { label: 'Carbs', value: `${goalResult.carbs_g}g`, color: '#f59e0b' },
+                  { label: 'Fat', value: `${goalResult.fat_g}g`, color: '#f97316' },
+                ].map(({ label, value, color }) => (
+                  <div key={label} style={{ flex: 1, background: 'var(--surface-2)', borderRadius: 12, padding: '10px 8px', textAlign: 'center', border: '1px solid var(--border)' }}>
+                    <div style={{ fontSize: 15, fontWeight: 800, color }}>{value}</div>
+                    <div style={{ fontSize: 10.5, color: 'var(--text-muted)', marginTop: 2 }}>{label}</div>
+                  </div>
+                ))}
+              </div>
+
+              {goalResult.isAggressive && (
+                <div className="calloutWarn" style={{ marginBottom: 12 }}>
+                  Your timeline is aggressive. Consider extending your goal date for a safer pace.
+                </div>
+              )}
+
+              <button onClick={applyRecommendation} className="btn btnPrimary" style={{ width: '100%', padding: 12 }}>
+                Apply these targets
+              </button>
             </div>
           )}
 
-          <button onClick={applyRecommendation} className="btn btnPrimary" style={{ width: '100%', padding: 12 }}>
-            Apply these targets
-          </button>
+          {/* Empty state when no recommendation yet */}
+          {!goalResult && (
+            <div className="card" style={{ padding: 24, textAlign: 'center' }}>
+              <div style={{ fontSize: 32, marginBottom: 10 }}>🎯</div>
+              <div style={{ fontSize: 14, fontWeight: 700, color: 'var(--txt)', marginBottom: 6 }}>Get AI Targets</div>
+              <div style={{ fontSize: 13, color: 'var(--txt2)', lineHeight: 1.6 }}>
+                Fill in your current weight, height, goal weight, and target date to get personalized calorie and macro recommendations.
+              </div>
+            </div>
+          )}
         </div>
-      )}
-
-      {/* Nutrition Targets */}
-      <Section title="Nutrition Targets" icon="🎯">
-        <Row label="Daily calorie goal">
-          <Input value={form.daily_calorie_goal} onChange={v => set('daily_calorie_goal', v)} placeholder="e.g. 2200" type="number" />
-        </Row>
-        <Row label="Daily protein goal (g)">
-          <Input value={form.protein_goal_g} onChange={v => set('protein_goal_g', v)} placeholder="e.g. 150" type="number" />
-        </Row>
-      </Section>
-
-      {/* Save */}
-      <button
-        onClick={handleSave}
-        disabled={saving}
-        className="btn btnPrimary"
-        style={{ width: '100%', padding: 15, fontSize: 15, fontWeight: 750, borderRadius: 'var(--radius)' }}
-      >
-        {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
-      </button>
+      </div>
     </div>
   );
 }

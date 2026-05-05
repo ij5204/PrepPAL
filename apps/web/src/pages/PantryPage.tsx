@@ -302,16 +302,22 @@ export function PantryPage() {
       })
       .subscribe();
 
-    const onVisible = () => { if (document.visibilityState === 'visible' && !modalOpenRef.current) fetchItems(); };
-    const onFocus = () => { if (!modalOpenRef.current) fetchItems(); };
+    // Refetch when tab becomes visible again, but debounce to avoid
+    // racing with Supabase's token refresh (which fires on tab focus too)
+    let visibilityTimer: ReturnType<typeof setTimeout> | null = null;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible' && !modalOpenRef.current) {
+        if (visibilityTimer) clearTimeout(visibilityTimer);
+        visibilityTimer = setTimeout(() => { fetchItems(); }, 1500);
+      }
+    };
 
     document.addEventListener('visibilitychange', onVisible);
-    window.addEventListener('focus', onFocus);
 
     return () => {
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', onVisible);
-      window.removeEventListener('focus', onFocus);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
     };
   }, [fetchItems]);
 
@@ -347,18 +353,62 @@ export function PantryPage() {
   ];
 
   const COMMON_ITEMS: Array<{ name: string; category: Category; unit: Unit }> = [
-    { name: 'Olive oil', category: 'pantry', unit: 'ml' },
+    // Pantry staples
+    { name: 'Olive Oil', category: 'pantry', unit: 'ml' },
+    { name: 'Vegetable Oil', category: 'pantry', unit: 'ml' },
+    { name: 'White Rice', category: 'pantry', unit: 'g' },
+    { name: 'Brown Rice', category: 'pantry', unit: 'g' },
+    { name: 'Pasta', category: 'pantry', unit: 'g' },
+    { name: 'Bread', category: 'pantry', unit: 'pieces' },
+    { name: 'Flour', category: 'pantry', unit: 'g' },
+    { name: 'Sugar', category: 'pantry', unit: 'g' },
+    { name: 'Honey', category: 'pantry', unit: 'g' },
+    { name: 'Canned Tomatoes', category: 'pantry', unit: 'pieces' },
+    { name: 'Canned Chickpeas', category: 'pantry', unit: 'pieces' },
+    { name: 'Canned Black Beans', category: 'pantry', unit: 'pieces' },
+    { name: 'Canned Lentils', category: 'pantry', unit: 'pieces' },
+    { name: 'Canned Tuna', category: 'pantry', unit: 'pieces' },
+    { name: 'Soy Sauce', category: 'pantry', unit: 'ml' },
+    { name: 'Tomato Paste', category: 'pantry', unit: 'g' },
+    { name: 'Chicken Broth', category: 'pantry', unit: 'ml' },
+    { name: 'Oats', category: 'pantry', unit: 'g' },
+    { name: 'Peanut Butter', category: 'pantry', unit: 'g' },
+    { name: 'Apple Cider Vinegar', category: 'pantry', unit: 'ml' },
+    // Spices
     { name: 'Salt', category: 'spice', unit: 'g' },
-    { name: 'Black pepper', category: 'spice', unit: 'g' },
+    { name: 'Black Pepper', category: 'spice', unit: 'g' },
+    { name: 'Garlic Powder', category: 'spice', unit: 'g' },
+    { name: 'Onion Powder', category: 'spice', unit: 'g' },
+    { name: 'Cumin', category: 'spice', unit: 'g' },
+    { name: 'Paprika', category: 'spice', unit: 'g' },
+    { name: 'Turmeric', category: 'spice', unit: 'g' },
+    { name: 'Oregano', category: 'spice', unit: 'g' },
+    { name: 'Chili Flakes', category: 'spice', unit: 'g' },
+    { name: 'Cinnamon', category: 'spice', unit: 'g' },
+    // Produce
     { name: 'Garlic', category: 'produce', unit: 'pieces' },
     { name: 'Onion', category: 'produce', unit: 'pieces' },
-    { name: 'Rice', category: 'pantry', unit: 'g' },
-    { name: 'Pasta', category: 'pantry', unit: 'g' },
+    { name: 'Tomatoes', category: 'produce', unit: 'pieces' },
+    { name: 'Lemon', category: 'produce', unit: 'pieces' },
+    { name: 'Potatoes', category: 'produce', unit: 'g' },
+    { name: 'Carrots', category: 'produce', unit: 'pieces' },
+    { name: 'Spinach', category: 'produce', unit: 'g' },
+    { name: 'Bell Pepper', category: 'produce', unit: 'pieces' },
+    { name: 'Broccoli', category: 'produce', unit: 'g' },
+    { name: 'Avocado', category: 'produce', unit: 'pieces' },
+    // Dairy
     { name: 'Eggs', category: 'dairy', unit: 'pieces' },
     { name: 'Milk', category: 'dairy', unit: 'ml' },
     { name: 'Butter', category: 'dairy', unit: 'g' },
-    { name: 'Chicken breast', category: 'protein', unit: 'g' },
-    { name: 'Canned tomatoes', category: 'pantry', unit: 'pieces' },
+    { name: 'Cheddar Cheese', category: 'dairy', unit: 'g' },
+    { name: 'Greek Yogurt', category: 'dairy', unit: 'g' },
+    { name: 'Parmesan', category: 'dairy', unit: 'g' },
+    // Protein
+    { name: 'Chicken Breast', category: 'protein', unit: 'g' },
+    { name: 'Ground Beef', category: 'protein', unit: 'g' },
+    { name: 'Salmon', category: 'protein', unit: 'g' },
+    { name: 'Tofu', category: 'protein', unit: 'g' },
+    { name: 'Shrimp', category: 'protein', unit: 'g' },
   ];
 
   const existingNames = new Set(items.map(i => i.name.trim().toLowerCase()));
@@ -472,6 +522,49 @@ export function PantryPage() {
           onClick={() => { setModalItem(null); setModalOpen(true); }}
         >+ Add pantry item</button>
       </div>
+
+      {/* Common pantry suggestions */}
+      {!loading && commonSuggestions.length > 0 && (
+        <div className="card" style={{ marginTop: 16 }}>
+          <div className="cardHd" style={{ marginBottom: 10 }}>
+            <div className="cardTitle">💡 Common Household Items</div>
+            <div style={{ fontSize: 12, color: 'var(--txt2)' }}>
+              Quick-add items typically found in most homes
+            </div>
+          </div>
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+            {commonSuggestions.map((s, i) => (
+              <button
+                key={i}
+                type="button"
+                onClick={() => {
+                  setModalItem(null);
+                  setModalPreset({ name: s.name, category: s.category, unit: s.unit });
+                  setModalOpen(true);
+                }}
+                style={{
+                  display: 'flex', alignItems: 'center', gap: 6,
+                  background: 'var(--surf2)', border: '1px solid var(--bdr2)',
+                  borderRadius: 20, padding: '6px 13px', fontSize: 12,
+                  color: 'var(--txt2)', cursor: 'pointer', fontFamily: 'var(--fb)',
+                  transition: 'border-color .15s, color .15s',
+                }}
+                onMouseOver={e => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--acc)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--txt)';
+                }}
+                onMouseOut={e => {
+                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--bdr2)';
+                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--txt2)';
+                }}
+              >
+                <span>{CATEGORY_ICONS[s.category]}</span>
+                <span>+ {s.name}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
 
       {modalOpen && (
         <PantryModal
