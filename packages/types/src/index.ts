@@ -50,6 +50,7 @@ export interface User {
   protein_goal_g: number | null;
   fitness_goal: FitnessGoal;
   dietary_restrictions: DietaryRestriction[];
+  preferred_cuisines: string[];
   allergies: string[];
   disliked_foods: string[];
   activity_level: ActivityLevel;

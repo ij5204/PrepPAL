@@ -21,6 +21,8 @@ export function ProfilePage() {
     activity_level: 'moderate' as 'sedentary' | 'light' | 'moderate' | 'active',
     daily_calorie_goal: '',
     protein_goal_g: '',
+    dietary_restrictions: [] as string[],
+    preferred_cuisines: [] as string[],
   });
 
   useEffect(() => {
@@ -38,6 +40,8 @@ export function ProfilePage() {
       activity_level: profile.activity_level ?? 'moderate',
       daily_calorie_goal: String(profile.daily_calorie_goal ?? 2200),
       protein_goal_g: profile.protein_goal_g ? String(profile.protein_goal_g) : '',
+      dietary_restrictions: profile.dietary_restrictions ?? [],
+      preferred_cuisines: profile.preferred_cuisines ?? [],
     });
   }, [profile]);
 
@@ -83,6 +87,8 @@ export function ProfilePage() {
       activity_level: form.activity_level,
       daily_calorie_goal: parseInt(form.daily_calorie_goal),
       protein_goal_g: form.protein_goal_g ? parseInt(form.protein_goal_g) : null,
+      dietary_restrictions: form.dietary_restrictions,
+      preferred_cuisines: form.preferred_cuisines,
     }).eq('id', profile.id);
     await refreshProfile();
     setSaving(false);
@@ -180,6 +186,40 @@ export function ProfilePage() {
                   { value: 'moderate', label: 'Moderate (3-5x/week)' },
                   { value: 'active', label: 'Active (6-7x/week)' },
                 ]} />
+            </Row>
+          </Section>
+
+          {/* Food Preferences */}
+          <Section title="Food Preferences" icon="🍽️">
+            <Row label="Dietary Restrictions">
+              <MultiPillSelect
+                value={form.dietary_restrictions}
+                onChange={v => set('dietary_restrictions', v as any)}
+                options={[
+                  { value: 'none', label: 'None' },
+                  { value: 'vegetarian', label: 'Vegetarian' },
+                  { value: 'vegan', label: 'Vegan' },
+                  { value: 'no-gluten', label: 'Gluten-Free' },
+                  { value: 'no-dairy', label: 'Dairy-Free' },
+                  { value: 'no-nuts', label: 'Nut-Free' },
+                  { value: 'halal', label: 'Halal' },
+                ]}
+              />
+            </Row>
+            <Row label="Preferred Cuisines">
+              <MultiPillSelect
+                value={form.preferred_cuisines}
+                onChange={v => set('preferred_cuisines', v as any)}
+                options={[
+                  { value: 'american', label: 'American' },
+                  { value: 'mexican', label: 'Mexican' },
+                  { value: 'italian', label: 'Italian' },
+                  { value: 'asian', label: 'Asian' },
+                  { value: 'indian', label: 'Indian' },
+                  { value: 'mediterranean', label: 'Mediterranean' },
+                  { value: 'middle-eastern', label: 'Middle Eastern' },
+                ]}
+              />
             </Row>
           </Section>
 
@@ -324,5 +364,46 @@ function Select({ value, onChange, options }: {
     >
       {options.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
     </select>
+  );
+}
+
+function MultiPillSelect({ options, value, onChange }: {
+  options: Array<{ value: string; label: string }>;
+  value: string[];
+  onChange: (v: string[]) => void;
+}) {
+  const toggle = (val: string) => {
+    // If 'none' is selected, clear everything else
+    if (val === 'none') return onChange(['none']);
+    
+    let next = value.includes(val) ? value.filter(v => v !== val) : [...value, val];
+    // Clear 'none' if something else is selected
+    if (val !== 'none') next = next.filter(v => v !== 'none');
+    
+    onChange(next);
+  };
+
+  return (
+    <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
+      {options.map(o => {
+        const active = value.includes(o.value);
+        return (
+          <button
+            key={o.value}
+            type="button"
+            onClick={() => toggle(o.value)}
+            style={{
+              background: active ? 'var(--accent-bg)' : 'var(--surf2)',
+              color: active ? 'var(--accent)' : 'var(--txt2)',
+              border: `1px solid ${active ? 'var(--accent-border-strong)' : 'var(--bdr2)'}`,
+              borderRadius: 999, padding: '5px 12px', fontSize: 12.5, fontWeight: active ? 700 : 500,
+              cursor: 'pointer', transition: 'all 0.15s ease'
+            }}
+          >
+            {o.label}
+          </button>
+        );
+      })}
+    </div>
   );
 }
