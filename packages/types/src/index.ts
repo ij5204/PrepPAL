@@ -165,13 +165,20 @@ export interface AuditLog {
 
 export interface MealSuggestion {
   meal_name: string;
-  ingredients_used: Array<{ name: string; quantity: number; unit: Unit }>;
-  missing_ingredients: Array<{ name: string; quantity: number; unit: Unit }>;
-  calories: number;
+  meal_type: string;
+  servings: number;
+  calories_per_serving: number;
+  total_calories: number;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
-  instructions: string;
+  prep_time_minutes: number;
+  cook_time_minutes: number;
+  ingredients_used: Array<{ name: string; quantity: number; unit: string }>;
+  missing_ingredients: Array<{ name: string; quantity: number; unit: string }>;
+  step_by_step_instructions: string[];
+  why_this_fits_user: string;
+  portion_notes: string;
   tags: string[];
 }
 

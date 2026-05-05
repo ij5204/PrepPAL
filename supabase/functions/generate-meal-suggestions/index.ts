@@ -9,20 +9,27 @@
 import { serve } from 'https://deno.land/std@0.208.0/http/server.ts';
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2';
 
-const CLAUDE_API_KEY = Deno.env.get('CLAUDE_API_KEY')!;
+const CLAUDE_API_KEY = (Deno.env.get('ANTHROPIC_API_KEY') ?? Deno.env.get('CLAUDE_API_KEY')) || '';
 const SUPABASE_URL = Deno.env.get('SUPABASE_URL')!;
 const SUPABASE_SERVICE_ROLE_KEY = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!;
 const CACHE_TTL_HOURS = 24;
 
 interface MealSuggestion {
   meal_name: string;
-  ingredients_used: Array<{ name: string; quantity: number; unit: string }>;
-  missing_ingredients: Array<{ name: string; quantity: number; unit: string }>;
-  calories: number;
+  meal_type: string;
+  servings: number;
+  calories_per_serving: number;
+  total_calories: number;
   protein_g: number;
   carbs_g: number;
   fat_g: number;
-  instructions: string;
+  prep_time_minutes: number;
+  cook_time_minutes: number;
+  ingredients_used: Array<{ name: string; quantity: number; unit: string }>;
+  missing_ingredients: Array<{ name: string; quantity: number; unit: string }>;
+  step_by_step_instructions: string[];
+  why_this_fits_user: string;
+  portion_notes: string;
   tags: string[];
 }
 
@@ -42,22 +49,38 @@ serve(async (req: Request) => {
     // ── Auth ─────────────────────────────────────────────────────────────────
     const authHeader = req.headers.get('Authorization');
     if (!authHeader) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: 'No auth header' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const token = authHeader.replace('Bearer ', '');
+
     const { data: { user }, error: authError } = await supabase.auth.getUser(token);
     if (authError || !user) {
-      return new Response(JSON.stringify({ error: 'Unauthorized' }), {
+      console.error('[DEV ERROR] Auth failed:', authError);
+      return new Response(JSON.stringify({ error: 'Unauthorized', details: authError?.message || 'Invalid token' }), {
         status: 401,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       });
     }
 
     const userId = user.id;
+
+    const bodyText = await req.text();
+    let requestParams: any = {};
+    if (bodyText) {
+      try { requestParams = JSON.parse(bodyText); } catch {}
+    }
+
+    const targetMealType = requestParams.meal_type || 'Breakfast';
+    const targetServings = parseInt(requestParams.servings) || 1;
+    const targetPreferences = Array.isArray(requestParams.preferences) ? requestParams.preferences : [];
+
+    console.log('[DEBUG] Target Meal:', targetMealType);
+    console.log('[DEBUG] Target Servings:', targetServings);
+    console.log('[DEBUG] Target Prefs:', targetPreferences);
 
     // ── Fetch pantry + user prefs ─────────────────────────────────────────────
     const [pantryResult, userResult] = await Promise.all([
@@ -112,7 +135,10 @@ serve(async (req: Request) => {
       `calorie_goal:${userPrefs.daily_calorie_goal};` +
       `fitness:${userPrefs.fitness_goal};` +
       `protein:${userPrefs.protein_goal_g ?? 'none'};` +
-      `logged_today_kcal:${caloriesLoggedToday}`;
+      `logged_today_kcal:${caloriesLoggedToday};` +
+      `targetMeal:${targetMealType};` +
+      `targetServings:${targetServings};` +
+      `targetPrefs:${targetPreferences.join(',')}`;
 
     const pantryHash = await sha256(pantryString);
 
@@ -149,7 +175,10 @@ serve(async (req: Request) => {
         pantryItems,
         userPrefs,
         caloriesLoggedToday,
-        remaining
+        remaining,
+        targetMealType,
+        targetServings,
+        targetPreferences
       );
 
       // ── Step 3: Store in cache ───────────────────────────────────────────────
@@ -172,47 +201,21 @@ serve(async (req: Request) => {
         pantry_item_count: pantryItems.length,
       });
     } catch (claudeError) {
-      // ── Fallback chain ─────────────────────────────────────────────────────
-      fallbackUsed = true;
-      claudeErrorDetails = String(claudeError);
-
-      await logSystemEvent(supabase, 'claude_error', 'edge:generate-meal-suggestions', {
-        user_id: userId,
-        error: String(claudeError),
-      });
-
-      // Fallback 1: stale cache
-      const { data: staleCache } = await supabase
-        .from('meal_suggestion_cache')
-        .select('suggestions')
-        .eq('user_id', userId)
-        .order('generated_at', { ascending: false })
-        .limit(1)
-        .single();
-
-      if (staleCache) {
-        fallbackReason = 'stale_cache';
-        suggestions = staleCache.suggestions;
-      } else if (pantryItems.length >= 3) {
-        // Fallback 2: rule-based
-        fallbackReason = 'rule_based';
-        suggestions = generateRuleBasedSuggestions(pantryItems);
-      } else {
-        // Fallback 3: empty state
-        return new Response(
-          JSON.stringify({
-            suggestions: [],
-            from_cache: false,
-            fallback_used: true,
-            fallback_reason: 'insufficient_pantry',
-          }),
-          { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
-        );
-      }
+      console.error('[DEV ERROR] Claude generation failed:', claudeError);
+      
+      // Temporarily disabled fallback to see real error
+      return new Response(
+        JSON.stringify({ 
+          error: 'Claude API failed', 
+          details: String(claudeError) 
+        }),
+        { status: 500, headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
+      );
     }
 
     return new Response(
       JSON.stringify({
+        debug_version: 'debug-no-fallback-v2',
         suggestions,
         from_cache: false,
         fallback_used: fallbackUsed,
@@ -222,11 +225,9 @@ serve(async (req: Request) => {
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
   } catch (err) {
-    await logSystemEvent(supabase, 'unhandled_error', 'edge:generate-meal-suggestions', {
-      error: String(err),
-    });
+    console.error('[DEV ERROR] Unhandled exception:', err);
     return new Response(
-      JSON.stringify({ error: 'Internal server error', suggestions: [], fallback_used: true }),
+      JSON.stringify({ error: 'Internal server error', details: String(err) }),
       {
         status: 500,
         headers: { ...corsHeaders, 'Content-Type': 'application/json' },
@@ -242,7 +243,10 @@ async function callClaude(
   pantryItems: any[],
   userPrefs: any,
   caloriesLoggedToday: number,
-  remaining: number
+  remaining: number,
+  targetMealType: string,
+  targetServings: number,
+  targetPreferences: string[]
 ): Promise<MealSuggestion[]> {
   const ingredientList = pantryItems
     .sort((a, b) => a.name.localeCompare(b.name))
@@ -250,9 +254,28 @@ async function callClaude(
     .join('\n');
 
   const systemPrompt =
-    "You are a meal planning assistant. Your job is to suggest practical, realistic meals based ONLY on the exact ingredients provided. Rules: (1) Never assume an ingredient exists if it is not in the list. (2) If only a small quantity of an ingredient remains, suggest a meal that uses that smaller amount. (3) Always return exactly 3 meal suggestions. (4) Return ONLY a valid JSON array with no preamble, no explanation, and no markdown formatting. (5) Never suggest a meal containing any item listed in allergies or disliked foods.";
+    "You are an elite culinary AI and nutritionist. Your job is to suggest practical, highly detailed, and realistic meals based ONLY on the exact ingredients provided.\n" +
+    "CRITICAL RULES:\n" +
+    "1. Never assume an ingredient exists if it is not in the list. If you need something, put it in missing_ingredients.\n" +
+    "2. If only a small quantity of an ingredient remains, suggest a meal that uses that smaller amount.\n" +
+    "3. Return exactly 3 meal suggestions. All 3 suggestions MUST be of the requested meal_type.\n" +
+    "4. The user has requested a specific meal_type, servings, and optional preferences. Tailor the recipes to perfectly match these.\n" +
+    "5. Calorie distribution per meal generally follows: Breakfast 20-30%, Lunch 30-35%, Dinner 30-35%, Snack 10-15%. Use the user's daily calorie goal to dictate realistic 'calories_per_serving' and 'total_calories'.\n" +
+    "6. Instructions MUST be highly detailed step-by-step arrays of strings. No vague summaries.\n" +
+    "7. Never suggest a meal containing any item listed in allergies or disliked foods.\n" +
+    "8. Return ONLY a valid JSON array with no preamble and no markdown formatting.";
 
-  const userMessage = `Pantry:\n${ingredientList}\n\nCalorie goal: ${userPrefs.daily_calorie_goal} kcal\nAlready consumed today: ${caloriesLoggedToday} kcal\nRemaining: ${remaining} kcal\nFitness goal: ${userPrefs.fitness_goal}\nDietary restrictions: ${userPrefs.dietary_restrictions?.length ? userPrefs.dietary_restrictions.join(', ') : 'none'}\nPreferred cuisines: ${userPrefs.preferred_cuisines?.length ? userPrefs.preferred_cuisines.join(', ') : 'none'}\nAllergies: ${userPrefs.allergies?.length ? userPrefs.allergies.join(', ') : 'none'}\nDisliked foods: ${userPrefs.disliked_foods?.length ? userPrefs.disliked_foods.join(', ') : 'none'}\n\nReturn 3 meal suggestions as a JSON array.`;
+  const userMessage = `Pantry:\n${ingredientList}\n\nCalorie goal: ${userPrefs.daily_calorie_goal} kcal\nAlready consumed today: ${caloriesLoggedToday} kcal\nRemaining: ${remaining} kcal\nFitness goal: ${userPrefs.fitness_goal}\nDietary restrictions: ${userPrefs.dietary_restrictions?.length ? userPrefs.dietary_restrictions.join(', ') : 'none'}\nPreferred cuisines: ${userPrefs.preferred_cuisines?.length ? userPrefs.preferred_cuisines.join(', ') : 'none'}\nAllergies: ${userPrefs.allergies?.length ? userPrefs.allergies.join(', ') : 'none'}\nDisliked foods: ${userPrefs.disliked_foods?.length ? userPrefs.disliked_foods.join(', ') : 'none'}\n\nTARGET MEAL TYPE: ${targetMealType}\nTARGET SERVINGS: ${targetServings}\nTARGET PREFERENCES: ${targetPreferences.length ? targetPreferences.join(', ') : 'none'}\n\nReturn exactly 3 variations of the requested meal as a JSON array matching this exact schema: [{ "meal_name": string, "meal_type": string, "servings": number, "calories_per_serving": number, "total_calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "prep_time_minutes": number, "cook_time_minutes": number, "ingredients_used": [{ "name": string, "quantity": number, "unit": string }], "missing_ingredients": [{ "name": string, "quantity": number, "unit": string }], "step_by_step_instructions": string[], "why_this_fits_user": string, "portion_notes": string, "tags": string[] }].`;
+
+  const payload = {
+    model: 'claude-haiku-4-5-20251001',
+    max_tokens: 4096,
+    system: systemPrompt,
+    messages: [{ role: 'user', content: userMessage }],
+  };
+
+  console.log('[DEBUG] Has API key:', !!CLAUDE_API_KEY);
+  console.log('[DEBUG] Calling Claude with payload:', JSON.stringify(payload));
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -261,27 +284,35 @@ async function callClaude(
       'x-api-key': CLAUDE_API_KEY,
       'anthropic-version': '2023-06-01',
     },
-    body: JSON.stringify({
-      model: 'claude-3-5-haiku-20241022',
-      max_tokens: 1500,
-      system: systemPrompt,
-      messages: [{ role: 'user', content: userMessage }],
-    }),
+    body: JSON.stringify(payload),
   });
 
   if (!response.ok) {
-    throw new Error(`Claude API error: ${response.status} ${await response.text()}`);
+    const errorText = await response.text();
+    console.error('[DEBUG] Claude API Error text:', errorText);
+    throw new Error(`Claude API error: ${response.status} ${errorText}`);
   }
 
   const data = await response.json();
   const rawText = data.content?.[0]?.text ?? '';
+  
+  console.log('[DEBUG] Claude raw response:', rawText);
 
   // Strip any accidental markdown fences
   const cleaned = rawText.replace(/```json|```/g, '').trim();
-  const parsed = JSON.parse(cleaned);
+  
+  let parsed;
+  try {
+    parsed = JSON.parse(cleaned);
+  } catch (e) {
+    console.error('[DEBUG] JSON PARSE ERROR on text:', cleaned);
+    throw new Error('Claude returned invalid JSON: ' + String(e));
+  }
 
-  if (!Array.isArray(parsed) || parsed.length !== 3) {
-    throw new Error('Claude did not return exactly 3 suggestions');
+  // Simplified validation to just return any valid JSON array
+  if (!Array.isArray(parsed)) {
+    console.error('[DEBUG] Schema validation failed. Parsed data is not an array:', parsed);
+    throw new Error('Claude did not return an array');
   }
 
   return parsed as MealSuggestion[];
@@ -290,7 +321,7 @@ async function callClaude(
 // ─────────────────────────────────────────────────────────────────────────────
 // Fallback 2: deterministic rule-based suggestions
 // ─────────────────────────────────────────────────────────────────────────────
-function generateRuleBasedSuggestions(pantryItems: any[]): MealSuggestion[] {
+function generateRuleBasedSuggestions(pantryItems: any[], userPrefs: any): MealSuggestion[] {
   const proteins = pantryItems.filter((i) => i.category === 'protein');
   const carbs = pantryItems.filter((i) =>
     ['pantry', 'produce'].includes(i.category)
@@ -303,22 +334,36 @@ function generateRuleBasedSuggestions(pantryItems: any[]): MealSuggestion[] {
   const c = pick(carbs);
   const v = pick(produce);
 
-  const makeBasic = (a: any, b: any, label: string): MealSuggestion => ({
-    meal_name: `Basic Suggestion — AI unavailable: ${a.name} with ${b.name}`,
-    ingredients_used: [
-      { name: a.name, quantity: Math.min(a.quantity, 200), unit: a.unit },
-      { name: b.name, quantity: Math.min(b.quantity, 100), unit: b.unit },
-    ],
-    missing_ingredients: [],
-    calories: 400,
-    protein_g: 25,
-    carbs_g: 40,
-    fat_g: 10,
-    instructions: `Combine ${a.name} and ${b.name} using your preferred cooking method. Season to taste.`,
-    tags: ['basic', 'ai-unavailable'],
-  });
+  const makeBasic = (a: any, b: any, label: string): MealSuggestion => {
+    const cals = userPrefs?.daily_calorie_goal ? Math.floor(userPrefs.daily_calorie_goal / 3) : 400;
+    return {
+      meal_name: `Basic Suggestion — AI unavailable: ${a.name} with ${b.name}`,
+      meal_type: label,
+      servings: 1,
+      calories_per_serving: cals,
+      total_calories: cals,
+      protein_g: 25,
+      carbs_g: 40,
+      fat_g: 10,
+      prep_time_minutes: 10,
+      cook_time_minutes: 15,
+      ingredients_used: [
+        { name: a.name, quantity: Math.min(a.quantity, 200), unit: a.unit },
+        { name: b.name, quantity: Math.min(b.quantity, 100), unit: b.unit },
+      ],
+      missing_ingredients: [],
+      step_by_step_instructions: [
+        "Gather all ingredients and prepare your cooking station.",
+        `Combine ${a.name} and ${b.name} using your preferred cooking method.`,
+        "Season to taste and serve immediately."
+      ],
+      why_this_fits_user: "This is a fallback recipe generated because the AI service is temporarily unavailable. It uses ingredients currently in your pantry.",
+      portion_notes: "This is a basic 1-serving portion.",
+      tags: ['basic', 'ai-unavailable'],
+    };
+  };
 
-  return [makeBasic(p, c, 'Protein + Carb'), makeBasic(p, v, 'Protein + Veg'), makeBasic(c, v, 'Carb + Veg')];
+  return [makeBasic(p, c, 'Breakfast'), makeBasic(p, v, 'Lunch'), makeBasic(c, v, 'Dinner')];
 }
 
 // ─────────────────────────────────────────────────────────────────────────────

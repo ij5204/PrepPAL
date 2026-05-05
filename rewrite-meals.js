@@ -1,4 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
+const fs = require('fs');
+
+const code = `import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
 import type { MealSuggestion } from '@preppal/types';
 
@@ -68,7 +70,7 @@ export function MealsPage() {
       if (!session) throw new Error('Please sign in again, then retry.');
 
       const res = await supabase.functions.invoke('generate-meal-suggestions', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
+        headers: { Authorization: \`Bearer \${session.access_token}\` },
         body: {
           meal_type: targetMealType,
           servings: targetServings,
@@ -76,19 +78,14 @@ export function MealsPage() {
         }
       });
 
-      if (res.error) {
-        throw new Error(`Edge Function Error: ${res.error.message || 'Unknown error'}`);
-      }
-      
-      const resData = res.data;
-
-      if (!resData?.suggestions || !Array.isArray(resData.suggestions) || resData.suggestions.length === 0) {
+      if (res.error) throw res.error;
+      if (!res.data?.suggestions || !Array.isArray(res.data.suggestions) || res.data.suggestions.length === 0) {
         throw new Error('No suggestions returned. Please try again.');
       }
 
       if (!mountedRef.current) return;
-      setSuggestions(resData.suggestions);
-      setFallbackUsed(Boolean(resData.fallback_used));
+      setSuggestions(res.data.suggestions);
+      setFallbackUsed(Boolean(res.data.fallback_used));
     } catch (e: any) {
       if (!mountedRef.current) return;
       setError(e?.message ?? 'Failed to generate meal ideas. Please try again.');
@@ -121,7 +118,7 @@ export function MealsPage() {
       if (insertErr) throw insertErr;
 
       if (!mountedRef.current) return;
-      showToast(`✓ Logged: ${meal.meal_name}`);
+      showToast(\`✓ Logged: \${meal.meal_name}\`);
     } catch (e: any) {
       if (!mountedRef.current) return;
       setError(e?.message ?? 'Failed to log meal. Please try again.');
@@ -297,9 +294,9 @@ export function MealsPage() {
               <div className="mealMacroGrid">
                 {([
                   ['kcal', meal.calories_per_serving || (meal as any).calories, 'kcal'],
-                  ['protein', `${meal.protein_g}g`, 'protein'],
-                  ['carbs', `${meal.carbs_g}g`, 'carbs'],
-                  ['fat', `${meal.fat_g}g`, 'fat'],
+                  ['protein', \`\${meal.protein_g}g\`, 'protein'],
+                  ['carbs', \`\${meal.carbs_g}g\`, 'carbs'],
+                  ['fat', \`\${meal.fat_g}g\`, 'fat'],
                 ] as [string, string | number, keyof typeof MACRO_COLORS][]).map(([label, value, colorKey]) => (
                   <div key={label} className="mealMacroPill">
                     <div style={{ fontSize: 18, fontWeight: 800, color: MACRO_COLORS[colorKey] }}>{value}</div>
@@ -374,3 +371,6 @@ export function MealsPage() {
     </div>
   );
 }
+`;
+
+fs.writeFileSync('apps/web/src/pages/MealsPage.tsx', code);
