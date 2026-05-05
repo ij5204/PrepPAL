@@ -68,7 +68,7 @@ serve(async (req: Request) => {
         .gt('quantity', 0),
       supabase
         .from('users')
-        .select('dietary_restrictions, allergies, disliked_foods, daily_calorie_goal, fitness_goal, protein_goal_g')
+        .select('dietary_restrictions, preferred_cuisines, allergies, disliked_foods, daily_calorie_goal, fitness_goal, protein_goal_g')
         .eq('id', userId)
         .single(),
     ]);
@@ -108,6 +108,7 @@ serve(async (req: Request) => {
       `restrictions:${(userPrefs.dietary_restrictions ?? []).sort().join(',')};` +
       `allergies:${(userPrefs.allergies ?? []).map((x: string) => x.toLowerCase()).sort().join(',')};` +
       `dislikes:${(userPrefs.disliked_foods ?? []).map((x: string) => x.toLowerCase()).sort().join(',')};` +
+      `cuisines:${(userPrefs.preferred_cuisines ?? []).sort().join(',')};` +
       `calorie_goal:${userPrefs.daily_calorie_goal};` +
       `fitness:${userPrefs.fitness_goal};` +
       `protein:${userPrefs.protein_goal_g ?? 'none'};` +
@@ -141,6 +142,7 @@ serve(async (req: Request) => {
     let suggestions: MealSuggestion[];
     let fallbackUsed = false;
     let fallbackReason: string | undefined;
+    let claudeErrorDetails: string | undefined;
 
     try {
       suggestions = await callClaude(
@@ -172,6 +174,7 @@ serve(async (req: Request) => {
     } catch (claudeError) {
       // ── Fallback chain ─────────────────────────────────────────────────────
       fallbackUsed = true;
+      claudeErrorDetails = String(claudeError);
 
       await logSystemEvent(supabase, 'claude_error', 'edge:generate-meal-suggestions', {
         user_id: userId,
@@ -214,6 +217,7 @@ serve(async (req: Request) => {
         from_cache: false,
         fallback_used: fallbackUsed,
         fallback_reason: fallbackReason,
+        error_details: claudeErrorDetails,
       }),
       { headers: { ...corsHeaders, 'Content-Type': 'application/json' } }
     );
@@ -248,7 +252,7 @@ async function callClaude(
   const systemPrompt =
     "You are a meal planning assistant. Your job is to suggest practical, realistic meals based ONLY on the exact ingredients provided. Rules: (1) Never assume an ingredient exists if it is not in the list. (2) If only a small quantity of an ingredient remains, suggest a meal that uses that smaller amount. (3) Always return exactly 3 meal suggestions. (4) Return ONLY a valid JSON array with no preamble, no explanation, and no markdown formatting. (5) Never suggest a meal containing any item listed in allergies or disliked foods.";
 
-  const userMessage = `Pantry:\n${ingredientList}\n\nCalorie goal: ${userPrefs.daily_calorie_goal} kcal\nAlready consumed today: ${caloriesLoggedToday} kcal\nRemaining: ${remaining} kcal\nFitness goal: ${userPrefs.fitness_goal}\nDietary restrictions: ${userPrefs.dietary_restrictions.length ? userPrefs.dietary_restrictions.join(', ') : 'none'}\nAllergies: ${userPrefs.allergies.length ? userPrefs.allergies.join(', ') : 'none'}\nDisliked foods: ${userPrefs.disliked_foods.length ? userPrefs.disliked_foods.join(', ') : 'none'}\n\nReturn 3 meal suggestions as a JSON array.`;
+  const userMessage = `Pantry:\n${ingredientList}\n\nCalorie goal: ${userPrefs.daily_calorie_goal} kcal\nAlready consumed today: ${caloriesLoggedToday} kcal\nRemaining: ${remaining} kcal\nFitness goal: ${userPrefs.fitness_goal}\nDietary restrictions: ${userPrefs.dietary_restrictions?.length ? userPrefs.dietary_restrictions.join(', ') : 'none'}\nPreferred cuisines: ${userPrefs.preferred_cuisines?.length ? userPrefs.preferred_cuisines.join(', ') : 'none'}\nAllergies: ${userPrefs.allergies?.length ? userPrefs.allergies.join(', ') : 'none'}\nDisliked foods: ${userPrefs.disliked_foods?.length ? userPrefs.disliked_foods.join(', ') : 'none'}\n\nReturn 3 meal suggestions as a JSON array.`;
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -258,7 +262,7 @@ async function callClaude(
       'anthropic-version': '2023-06-01',
     },
     body: JSON.stringify({
-      model: 'claude-sonnet-4-20250514',
+      model: 'claude-3-5-haiku-20241022',
       max_tokens: 1500,
       system: systemPrompt,
       messages: [{ role: 'user', content: userMessage }],
