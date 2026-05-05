@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { Clock, Flame, Zap, ChevronRight } from 'lucide-react';
+import { Clock, Flame, Zap } from 'lucide-react';
 
 export interface Meal {
   id: string;

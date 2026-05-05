@@ -15,8 +15,8 @@ const CATEGORY_ICONS: Record<Category, string> = {
   other: '📦',
 };
 
-const EXPIRY_COLORS = { ok: '#22c55e', warning: '#f59e0b', danger: '#ef4444', expired: '#6b7280' };
-type ExpiryStatus = keyof typeof EXPIRY_COLORS;
+
+
 
 interface FormState {
   name: string; quantity: string; unit: Unit; expiry_date: string; category: Category; notes: string;
@@ -202,67 +202,6 @@ function DeleteConfirm({ item, onCancel, onConfirm, deleting }: {
   );
 }
 
-// ── Pantry Card ───────────────────────────────────────────────────────────────
-
-function PantryItemCard({ item, onEdit, onDelete }: { item: PantryItem; onEdit: () => void; onDelete: () => void }) {
-  const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date) as { status: ExpiryStatus; daysUntilExpiry: number };
-  const color = EXPIRY_COLORS[status];
-
-  const expiryLabel = !item.expiry_date ? null
-    : status === 'expired' ? 'Expired'
-    : daysUntilExpiry === 0 ? 'Today'
-    : daysUntilExpiry === 1 ? '1 day'
-    : `${daysUntilExpiry}d`;
-
-  const expiryBg = {
-    ok: 'rgba(34,197,94,0.09)',
-    warning: 'rgba(245,158,11,0.10)',
-    danger: 'rgba(239,68,68,0.10)',
-    expired: 'rgba(107,114,128,0.10)',
-  }[status];
-
-  return (
-    <div className="pantryCard animate-fade-in">
-      <div className="pantryCardHeader">
-        <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-          <span className="categoryIcon">{CATEGORY_ICONS[item.category]}</span>
-          <div>
-            <div style={{ fontSize: 14.5, fontWeight: 700, color: 'var(--text-primary)', lineHeight: 1.25 }}>{item.name}</div>
-            {item.notes && <div style={{ fontSize: 11.5, color: 'var(--text-muted)', marginTop: 2 }}>{item.notes}</div>}
-          </div>
-        </div>
-      </div>
-
-      <div className="pantryCardBody">
-        <div style={{ fontSize: 22, fontWeight: 800, color: 'var(--text-primary)', letterSpacing: '-0.01em' }}>
-          {item.quantity}
-          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--text-muted)', marginLeft: 4 }}>{item.unit}</span>
-        </div>
-
-        <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-          <span className="pillMuted" style={{ fontSize: 11 }}>
-            {item.category.charAt(0).toUpperCase() + item.category.slice(1)}
-          </span>
-          {expiryLabel && (
-            <span style={{
-              fontSize: 11, fontWeight: 750, color,
-              background: expiryBg,
-              border: `1px solid ${color}33`,
-              borderRadius: 999, padding: '2px 9px',
-            }}>
-              {status === 'expired' ? '⚠️ ' : status === 'danger' ? '⚠️ ' : ''}{expiryLabel}
-            </span>
-          )}
-        </div>
-      </div>
-
-      <div className="pantryCardFooter">
-        <button type="button" className="btnGhostSm" onClick={onEdit} style={{ flex: 1, textAlign: 'center' }}>Edit</button>
-        <button type="button" className="btnDangerSm" onClick={onDelete} style={{ flex: 1, textAlign: 'center' }}>Delete</button>
-      </div>
-    </div>
-  );
-}
 
 // ── Main Page ─────────────────────────────────────────────────────────────────
 

@@ -1,5 +1,5 @@
 import { motion } from 'framer-motion';
-import { TrendingUp, Flame, Zap, Trophy, Target, Calendar, Brain } from 'lucide-react';
+import { Flame, Zap, Trophy, Target, Brain } from 'lucide-react';
 import { PrepAreaChart, PrepBarChart, PrepLineChart } from '../components/ui/AnalyticsChart';
 import { mockWeeklyCalories, mockWeeklyProtein, mockWeightProgress, mockStats, mockToday } from '../data/mockData';
 

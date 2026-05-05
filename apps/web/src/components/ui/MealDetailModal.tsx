@@ -1,5 +1,5 @@
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Clock, Flame, Zap, CheckCircle, AlertCircle, ChevronRight } from 'lucide-react';
+import { X, Clock, Flame, CheckCircle, AlertCircle } from 'lucide-react';
 import { Meal } from './MealCard';
 
 interface MealDetailModalProps {
