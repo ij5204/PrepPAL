@@ -30,12 +30,17 @@ export function LoginPage() {
     e.preventDefault();
     setError('');
     setLoading(true);
-    const result = mode === 'login'
-      ? await signInWithEmail(email, password)
-      : await signUpWithEmail(email, password, name);
-    setLoading(false);
-    if (result.error) { setError(result.error.message); return; }
-    navigate('/dashboard');
+    try {
+      const result = mode === 'login'
+        ? await signInWithEmail(email, password)
+        : await signUpWithEmail(email, password, name);
+      if (result.error) { setError(result.error.message); return; }
+      navigate('/dashboard');
+    } catch (err: any) {
+      setError(err.message ?? 'Something went wrong. Please try again.');
+    } finally {
+      setLoading(false);
+    }
   };
 
   return (

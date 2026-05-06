@@ -64,8 +64,14 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
   );
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
+  const isSavingRef = useRef(false);
 
+  // Reset form AND saving state whenever the modal switches item/preset.
+  // Also clears any stuck saving=true left from a previous session.
   useEffect(() => {
+    setSaving(false);
+    isSavingRef.current = false;
+    setError('');
     if (item) {
       setForm({ name: item.name, quantity: String(item.quantity), unit: item.unit, expiry_date: item.expiry_date ?? '', category: item.category, notes: item.notes ?? '' });
       return;
@@ -79,30 +85,52 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
       setForm(f => ({ ...f, [field]: e.target.value }));
 
   const handleSave = async () => {
+    if (isSavingRef.current) return;
     setError('');
     if (!form.name.trim()) return setError('Name is required.');
-    const qty = parseFloat(form.quantity);
+    const qty = Number(form.quantity);
     if (isNaN(qty) || qty <= 0) return setError('Quantity must be greater than 0.');
 
+    // Read session synchronously from Zustand — avoids acquiring the Supabase
+    // auth SDK lock (navigator.locks) which competes with the insert/update query.
+    const { session } = useAuthStore.getState();
+    console.log('[Pantry] SAVE START | isEdit:', isEdit, '| user_id:', session?.user?.id ?? 'none');
+
+    if (!session) {
+      setError('Not authenticated. Please refresh the page and try again.');
+      return;
+    }
+
+    isSavingRef.current = true;
     setSaving(true);
+
     try {
       const payload = {
         name: form.name.trim().replace(/\b\w/g, c => c.toUpperCase()),
         quantity: qty,
-        unit: form.unit,
+        unit: form.unit as Unit,
         expiry_date: form.expiry_date || null,
-        category: form.category,
+        category: form.category as Category,
         notes: form.notes.trim() || null,
       };
+      console.log('[Pantry] SAVE payload:', payload);
 
       if (isEdit) {
         const { error: err } = await supabase.from('pantry_items').update(payload).eq('id', item.id);
-        if (err) throw err;
+        if (err) {
+          console.error('[Pantry] SAVE update ERROR:', err);
+          throw err;
+        }
+        console.log('[Pantry] SAVE update SUCCESS');
       } else {
-        const { data: { session } } = await supabase.auth.getSession();
-        if (!session) throw new Error('Not authenticated. Please refresh and try again.');
-        const { error: err } = await supabase.from('pantry_items').insert({ ...payload, user_id: session.user.id });
-        if (err) throw err;
+        const { error: err } = await supabase
+          .from('pantry_items')
+          .insert({ ...payload, user_id: session.user.id });
+        if (err) {
+          console.error('[Pantry] SAVE insert ERROR:', err);
+          throw err;
+        }
+        console.log('[Pantry] SAVE insert SUCCESS');
       }
 
       await onSaved();
@@ -110,6 +138,8 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Try again.');
     } finally {
+      console.log('[Pantry] SAVE FINALLY');
+      isSavingRef.current = false;
       setSaving(false);
     }
   };

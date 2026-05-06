@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
 import type { MealSuggestion } from '@preppal/types';
 
 const MACRO_COLORS = {
@@ -35,6 +36,7 @@ export function MealsPage() {
 
   const toastTimeoutRef = useRef<number | null>(null);
   const mountedRef = useRef(true);
+  const isFetchingRef = useRef(false);
 
   useEffect(() => {
     mountedRef.current = true;
@@ -59,12 +61,13 @@ export function MealsPage() {
   };
 
   const fetchSuggestions = async () => {
+    if (isFetchingRef.current) return;
+    isFetchingRef.current = true;
     setError('');
     setLoading(true);
-    setSuggestions([]); // Clear previous suggestions
+    setSuggestions([]);
     try {
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) throw sessionErr;
+      const { session } = useAuthStore.getState();
       if (!session) throw new Error('Please sign in again, then retry.');
 
       const res = await supabase.functions.invoke('generate-meal-suggestions', {
@@ -93,6 +96,7 @@ export function MealsPage() {
       if (!mountedRef.current) return;
       setError(e?.message ?? 'Failed to generate meal ideas. Please try again.');
     } finally {
+      isFetchingRef.current = false;
       if (mountedRef.current) setLoading(false);
     }
   };
@@ -101,12 +105,11 @@ export function MealsPage() {
     setError('');
     setLogged(idx);
     try {
-      const { data: { user }, error: userErr } = await supabase.auth.getUser();
-      if (userErr) throw userErr;
-      if (!user) throw new Error('You are signed out. Please sign in again.');
+      const { session } = useAuthStore.getState();
+      if (!session?.user) throw new Error('You are signed out. Please sign in again.');
 
       const { error: insertErr } = await supabase.from('meal_logs').insert({
-        user_id: user.id,
+        user_id: session.user.id,
         meal_name: meal.meal_name,
         calories: meal.total_calories || meal.calories_per_serving, // fallback if needed
         protein_g: meal.protein_g,

@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { motion } from 'framer-motion';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
@@ -517,15 +517,22 @@ export function NutritionPage() {
   const [monthLoading,  setMonthLoading]  = useState(false);
   const [todayError,    setTodayError]    = useState<string | null>(null);
 
+  const isFetchingTodayRef  = useRef(false);
+  const isFetchingWeekRef   = useRef(false);
+  const isFetchingMonthRef  = useRef(false);
+  const isFetchingPantryRef = useRef(false);
+
   const macroGoals  = profile ? calcMacroGoals(profile) : { protein: 130, carbs: 200, fat: 60 };
   const calorieGoal = profile?.daily_calorie_goal ?? 2000;
 
   const fetchToday = useCallback(async () => {
+    if (isFetchingTodayRef.current) return;
+    isFetchingTodayRef.current = true;
     setTodayLoading(true);
     setTodayError(null);
     try {
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr || !session) throw new Error(sessionErr?.message ?? 'Your session expired. Please sign in again.');
+      const { session } = useAuthStore.getState();
+      if (!session) throw new Error('Your session expired. Please sign in again.');
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -537,17 +544,21 @@ export function NutritionPage() {
       if (error) throw error;
       setTodayLogs((data as MealLog[]) ?? []);
     } catch (e: unknown) {
-      setTodayError((e as Error).message ?? 'Failed to load today\'s meals');
+      setTodayError((e as Error).message ?? "Failed to load today's meals");
     } finally {
+      isFetchingTodayRef.current = false;
       setTodayLoading(false);
     }
   }, []);
 
   const fetchWeek = useCallback(async () => {
+    if (isFetchingWeekRef.current) return;
+    isFetchingWeekRef.current = true;
     setWeekLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { session } = useAuthStore.getState();
+      if (!session) return;
+      const user = session.user;
 
       const today = new Date();
       today.setHours(0, 0, 0, 0);
@@ -570,15 +581,19 @@ export function NutritionPage() {
       }
       setWeekData(aggregateByDay(data ?? [], days));
     } finally {
+      isFetchingWeekRef.current = false;
       setWeekLoading(false);
     }
   }, []);
 
   const fetchMonth = useCallback(async () => {
+    if (isFetchingMonthRef.current) return;
+    isFetchingMonthRef.current = true;
     setMonthLoading(true);
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      if (!user) return;
+      const { session } = useAuthStore.getState();
+      if (!session) return;
+      const user = session.user;
 
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
@@ -598,20 +613,27 @@ export function NutritionPage() {
       }
       setMonthData(aggregateByDay(data ?? [], days));
     } finally {
+      isFetchingMonthRef.current = false;
       setMonthLoading(false);
     }
   }, []);
 
   const fetchPantry = useCallback(async () => {
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
-    const { data } = await supabase.from('pantry_items').select('expiry_date').eq('user_id', user.id);
+    if (isFetchingPantryRef.current) return;
+    isFetchingPantryRef.current = true;
+    try {
+    const { session } = useAuthStore.getState();
+    if (!session) return;
+    const { data } = await supabase.from('pantry_items').select('expiry_date');
     if (!data) return;
     setPantryCount(data.length);
     setExpiringCount(data.filter(item => {
       const { status } = getExpiryStatus(item.expiry_date);
       return status === 'warning' || status === 'danger';
     }).length);
+    } finally {
+      isFetchingPantryRef.current = false;
+    }
   }, []);
 
   // Fetch all on mount; re-fetch today on timeframe switch to keep it fresh

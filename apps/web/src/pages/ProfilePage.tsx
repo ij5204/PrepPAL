@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { useAuthStore } from '../stores/authStore';
 import { supabase } from '../lib/supabase';
 import { calculateGoals, formatWeightChange } from '../lib/goalCalc';
@@ -8,6 +8,8 @@ export function ProfilePage() {
   const { profile, refreshProfile } = useAuthStore();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
+  const [saveError, setSaveError] = useState('');
+  const isSavingRef = useRef(false);
   const [form, setForm] = useState({
     name: '',
     current_weight: '',
@@ -72,28 +74,37 @@ export function ProfilePage() {
   };
 
   const handleSave = async () => {
-    if (!profile) return;
+    if (!profile || isSavingRef.current) return;
+    isSavingRef.current = true;
     setSaving(true);
-    await supabase.from('users').update({
-      name: form.name,
-      current_weight: form.current_weight ? parseFloat(form.current_weight) : null,
-      goal_weight: form.goal_weight ? parseFloat(form.goal_weight) : null,
-      height: form.height ? parseFloat(form.height) : null,
-      weight_unit: form.weight_unit,
-      height_unit: form.height_unit,
-      gender: form.gender,
-      goal_date: form.goal_date || null,
-      fitness_goal: form.fitness_goal,
-      activity_level: form.activity_level,
-      daily_calorie_goal: parseInt(form.daily_calorie_goal),
-      protein_goal_g: form.protein_goal_g ? parseInt(form.protein_goal_g) : null,
-      dietary_restrictions: form.dietary_restrictions,
-      preferred_cuisines: form.preferred_cuisines,
-    }).eq('id', profile.id);
-    await refreshProfile();
-    setSaving(false);
-    setSaved(true);
-    setTimeout(() => setSaved(false), 2500);
+    setSaveError('');
+    try {
+      const { error } = await supabase.from('users').update({
+        name: form.name,
+        current_weight: form.current_weight ? parseFloat(form.current_weight) : null,
+        goal_weight: form.goal_weight ? parseFloat(form.goal_weight) : null,
+        height: form.height ? parseFloat(form.height) : null,
+        weight_unit: form.weight_unit,
+        height_unit: form.height_unit,
+        gender: form.gender,
+        goal_date: form.goal_date || null,
+        fitness_goal: form.fitness_goal,
+        activity_level: form.activity_level,
+        daily_calorie_goal: parseInt(form.daily_calorie_goal),
+        protein_goal_g: form.protein_goal_g ? parseInt(form.protein_goal_g) : null,
+        dietary_restrictions: form.dietary_restrictions,
+        preferred_cuisines: form.preferred_cuisines,
+      }).eq('id', profile.id);
+      if (error) throw error;
+      await refreshProfile();
+      setSaved(true);
+      setTimeout(() => setSaved(false), 2500);
+    } catch (err: any) {
+      setSaveError(err.message ?? 'Failed to save. Please try again.');
+    } finally {
+      isSavingRef.current = false;
+      setSaving(false);
+    }
   };
 
   const set = (key: string, val: string) => setForm(f => ({ ...f, [key]: val }));
@@ -121,6 +132,12 @@ export function ProfilePage() {
           {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
         </button>
       </div>
+
+      {saveError && (
+        <div style={{ background: 'rgba(255,77,0,.08)', border: '1px solid rgba(255,77,0,.2)', borderRadius: 10, padding: '10px 16px', fontSize: 13, color: '#FF7A50', marginBottom: 12 }}>
+          {saveError}
+        </div>
+      )}
 
       {/* Avatar strip */}
       <div style={{ display: 'flex', alignItems: 'center', gap: 16, background: 'var(--surf)', border: '1px solid var(--bdr)', borderRadius: 'var(--rad-lg)', padding: '18px 24px' }}>

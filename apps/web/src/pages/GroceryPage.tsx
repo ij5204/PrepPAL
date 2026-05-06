@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
 import type { GroceryListItem } from '@preppal/types';
 
 const reasonConfig: Record<string, { label: string; color: string; bg: string }> = {
@@ -28,14 +29,23 @@ export function GroceryPage() {
 
   const addItem = async () => {
     if (!newItem.trim() || adding) return;
+    const { session } = useAuthStore.getState();
+    if (!session) return;
     setAdding(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (user) {
-      await supabase.from('grocery_list_items').insert({ user_id: user.id, name: newItem.trim(), reason: 'manual' });
+    try {
+      const { error } = await supabase.from('grocery_list_items').insert({
+        user_id: session.user.id,
+        name: newItem.trim(),
+        reason: 'manual',
+      });
+      if (error) throw error;
       setNewItem('');
       fetch();
+    } catch (err: any) {
+      console.error('[Grocery] addItem error:', err);
+    } finally {
+      setAdding(false);
     }
-    setAdding(false);
   };
 
   const clearCompleted = async () => {

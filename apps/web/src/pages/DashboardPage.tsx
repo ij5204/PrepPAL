@@ -123,8 +123,7 @@ export function DashboardPage() {
     console.log('[Dashboard] fetch start');
 
     try {
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) throw sessionErr;
+      const { session } = useAuthStore.getState();
       if (!session) throw new Error('Your session expired. Please sign in again.');
 
       const today = new Date(); today.setHours(0, 0, 0, 0);
