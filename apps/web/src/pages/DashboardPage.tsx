@@ -123,6 +123,10 @@ export function DashboardPage() {
     console.log('[Dashboard] fetch start');
 
     try {
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) throw sessionErr;
+      if (!session) throw new Error('Your session expired. Please sign in again.');
+
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const in14Days = new Date(today); in14Days.setDate(in14Days.getDate() + 14);
 

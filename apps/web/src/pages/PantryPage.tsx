@@ -1,6 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
-import { useAuthStore } from '../stores/authStore';
 import { getExpiryStatus } from '@preppal/utils';
 import type { PantryItem, Unit, Category } from '@preppal/types';
 
@@ -234,10 +233,12 @@ export function PantryPage() {
     }, 8000);
 
     try {
-      // Sync read from Zustand — never blocks, no async token-refresh wait.
-      const session = useAuthStore.getState().session;
+      // getSession() forces a token refresh if the JWT is expired.
+      // Never read the stale Zustand session here — it won't refresh an expired token.
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr) throw sessionErr;
       console.log('[Pantry] fetch start — session exists:', !!session);
-      if (!session) throw new Error('No active session — please refresh the page.');
+      if (!session) throw new Error('Your session expired. Please sign in again.');
 
       const { data, error } = await supabase
         .from('pantry_items')

@@ -524,6 +524,9 @@ export function NutritionPage() {
     setTodayLoading(true);
     setTodayError(null);
     try {
+      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
+      if (sessionErr || !session) throw new Error(sessionErr?.message ?? 'Your session expired. Please sign in again.');
+
       const today = new Date();
       today.setHours(0, 0, 0, 0);
       const { data, error } = await supabase
