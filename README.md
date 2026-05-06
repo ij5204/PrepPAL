@@ -6,7 +6,7 @@ PrepPAL removes the mental load of figuring out what to cook. It suggests meals 
 
 ---
 
-## The Core Loop
+## The Core-loop
 
 ```
 Pantry input → AI meal suggestion → Log meal → Repeat
