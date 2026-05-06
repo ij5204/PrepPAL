@@ -1,12 +1,12 @@
 # PrepPAL
 
-**Your personal meal helper for busy students and gym-goers.**
+**Your personal meal helper for busy students and gym-goers alike.**
 
 PrepPAL removes the mental load of figuring out what to cook. It suggests meals from ingredients you already have, tracks your daily calorie and macro intake, generates grocery lists automatically, and alerts you before food expires.
 
 ---
 
-## The Core Loop
+## The Core-loop
 
 ```
 Pantry input → AI meal suggestion → Log meal → Repeat
