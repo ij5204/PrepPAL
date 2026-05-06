@@ -5,12 +5,6 @@ import { supabase } from '../../lib/supabase';
 
 /* ── Icons ─────────────────────────────────────────────────────────────────── */
 
-const SearchIcon = () => (
-  <svg width="13" height="13" viewBox="0 0 16 16" fill="none" style={{ opacity: 0.4 }}>
-    <circle cx="6.5" cy="6.5" r="5" stroke="white" strokeWidth="1.5"/>
-    <line x1="11" y1="11" x2="14" y2="14" stroke="white" strokeWidth="1.5" strokeLinecap="round"/>
-  </svg>
-);
 
 const BellIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none">
@@ -173,11 +167,6 @@ export function AppShell() {
       {/* ── TOPBAR ── */}
       <header className="appTopbar">
         <div className="appBrand" onClick={() => navigate('/dashboard')}>PREPPAL</div>
-
-        <div className="tbSearch">
-          <SearchIcon />
-          Search pantry, meals…
-        </div>
 
         <button className="tbBtn" onClick={() => navigate('/meals')}>+ SUGGEST MEAL</button>
 

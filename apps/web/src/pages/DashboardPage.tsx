@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuthStore } from '../stores/authStore';
 import { supabase } from '../lib/supabase';
@@ -7,7 +7,7 @@ import { supabase } from '../lib/supabase';
 
 function CalorieRing({ value, max }: { value: number; max: number }) {
   const r = 48;
-  const circ = 2 * Math.PI * r; // 301.6
+  const circ = 2 * Math.PI * r;
   const pct = Math.min(value / (max || 1), 1);
   const offset = circ - pct * circ;
   const color = pct >= 1 ? 'var(--acc2)' : 'var(--acc)';
@@ -63,18 +63,14 @@ function getGreeting() {
 function calcGoals(profile: any): { protein: number; carbs: number; fat: number } {
   const calGoal: number = profile.daily_calorie_goal;
   const fitnessGoal: string = (profile.fitness_goal ?? 'maintaining').toLowerCase();
-
-  // If user explicitly set a protein goal, honour it
   const explicitProtein: number | null = profile.protein_goal_g ?? null;
 
-  // Convert stored weight to lbs
   const weightLbs: number | null = (() => {
     const w = profile.current_weight;
     if (!w) return null;
     return profile.weight_unit === 'kg' ? w * 2.20462 : w;
   })();
 
-  // ── Step 1: Protein ────────────────────────────────────────────────────────
   let protein: number;
   if (explicitProtein != null) {
     protein = explicitProtein;
@@ -83,12 +79,10 @@ function calcGoals(profile: any): { protein: number; carbs: number; fat: number 
     else if (fitnessGoal === 'bulking') protein = Math.round(weightLbs * 0.8);
     else                                protein = Math.round(weightLbs * 0.75);
   } else {
-    // No weight on file — use percentage of calories as fallback
     const pct = fitnessGoal === 'cutting' ? 0.30 : 0.25;
     protein = Math.round((calGoal * pct) / 4);
   }
 
-  // ── Step 2: Fat ────────────────────────────────────────────────────────────
   let fat: number;
   if (weightLbs) {
     if (fitnessGoal === 'cutting')      fat = Math.round(weightLbs * 0.35);
@@ -99,12 +93,9 @@ function calcGoals(profile: any): { protein: number; carbs: number; fat: number 
     fat = Math.round((calGoal * fatPct) / 9);
   }
 
-  // ── Step 3: Carbs fill the remaining budget ────────────────────────────────
   const carbs = Math.max(0, Math.round((calGoal - protein * 4 - fat * 9) / 4));
-
   return { protein, carbs, fat };
 }
-
 
 /* ── Page ─────────────────────────────────────────────────────────────────── */
 
@@ -115,57 +106,104 @@ export function DashboardPage() {
   const [weekData, setWeekData] = useState<{ day: string; pct: number }[]>([]);
   const [expiryItems, setExpiryItems] = useState<any[]>([]);
   const [pantryCount, setPantryCount] = useState<number | null>(null);
+  const [dataLoading, setDataLoading] = useState(true);
 
-  useEffect(() => {
-    if (!profile) return;
-    const today = new Date(); today.setHours(0, 0, 0, 0);
-    supabase.from('meal_logs').select('*').gte('eaten_at', today.toISOString())
-      .then(({ data }) => setTodayLogs(data ?? []));
+  // Prevent concurrent fetches
+  const fetchingRef = useRef(false);
+  const initialLoadDone = useRef(false);
 
-    const days = Array.from({ length: 7 }, (_, i) => {
-      const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d;
-    });
-    Promise.all(days.map(d => {
-      const s = new Date(d); s.setHours(0, 0, 0, 0);
-      const e = new Date(d); e.setHours(23, 59, 59, 999);
-      return supabase.from('meal_logs').select('calories')
-        .gte('eaten_at', s.toISOString()).lte('eaten_at', e.toISOString())
-        .then(({ data }) => ({
-          day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
-          pct: Math.min(((data ?? []).reduce((s: number, m: any) => s + m.calories, 0)) / (profile.daily_calorie_goal || 1), 1),
-        }));
-    })).then(setWeekData);
+  const fetchDashboard = useCallback(async (currentProfile: any) => {
+    if (!currentProfile) return;
+    if (fetchingRef.current) {
+      console.log('[Dashboard] fetch already in progress, skipping');
+      return;
+    }
+    fetchingRef.current = true;
+    if (!initialLoadDone.current) setDataLoading(true);
+    console.log('[Dashboard] fetch start');
 
-    // Fetch pantry items expiring within 14 days
-    const in14Days = new Date(today);
-    in14Days.setDate(in14Days.getDate() + 14);
-    supabase.from('pantry_items')
-      .select('id, name, quantity, unit, category, expiry_date')
-      .lte('expiry_date', in14Days.toISOString().split('T')[0])
-      .gte('expiry_date', today.toISOString().split('T')[0])
-      .order('expiry_date')
-      .limit(6)
-      .then(({ data }) => {
-        const rows = (data ?? []).map((item: any) => {
-          const expDate = new Date(item.expiry_date + 'T00:00:00');
-          const diffDays = Math.round((expDate.getTime() - today.getTime()) / 86400000);
-          const CATEGORY_LABELS: Record<string, string> = {
-            produce: 'Produce', dairy: 'Dairy', protein: 'Protein',
-            pantry: 'Pantry', spice: 'Spice', other: 'Other',
-          };
-          const cat = `${CATEGORY_LABELS[item.category] ?? 'Other'} · ${item.quantity} ${item.unit}`;
-          let dotColor = 'var(--acc)'; let pillCls = 'pillG'; let label = `${diffDays} days`;
-          if (diffDays === 0) { dotColor = 'var(--acc2)'; pillCls = 'pillR'; label = 'Today'; }
-          else if (diffDays <= 3) { dotColor = '#FFA020'; pillCls = 'pillO'; }
-          return { name: item.name, cat, dotColor, pillCls, label };
-        });
-        setExpiryItems(rows);
+    try {
+      const today = new Date(); today.setHours(0, 0, 0, 0);
+      const in14Days = new Date(today); in14Days.setDate(in14Days.getDate() + 14);
+
+      const [logsRes, expiryRes, countRes] = await Promise.all([
+        supabase.from('meal_logs').select('*').gte('eaten_at', today.toISOString()),
+        supabase.from('pantry_items')
+          .select('id, name, quantity, unit, category, expiry_date')
+          .lte('expiry_date', in14Days.toISOString().split('T')[0])
+          .gte('expiry_date', today.toISOString().split('T')[0])
+          .order('expiry_date')
+          .limit(6),
+        supabase.from('pantry_items').select('*', { count: 'exact', head: true }),
+      ]);
+
+      setTodayLogs(logsRes.data ?? []);
+      setPantryCount(countRes.count ?? 0);
+
+      const rows = (expiryRes.data ?? []).map((item: any) => {
+        const expDate = new Date(item.expiry_date + 'T00:00:00');
+        const diffDays = Math.round((expDate.getTime() - today.getTime()) / 86400000);
+        const CATEGORY_LABELS: Record<string, string> = {
+          produce: 'Produce', dairy: 'Dairy', protein: 'Protein',
+          pantry: 'Pantry', spice: 'Spice', other: 'Other',
+        };
+        const cat = `${CATEGORY_LABELS[item.category] ?? 'Other'} · ${item.quantity} ${item.unit}`;
+        let dotColor = 'var(--acc)'; let pillCls = 'pillG'; let label = `${diffDays} days`;
+        if (diffDays === 0) { dotColor = 'var(--acc2)'; pillCls = 'pillR'; label = 'Today'; }
+        else if (diffDays <= 3) { dotColor = '#FFA020'; pillCls = 'pillO'; }
+        return { name: item.name, cat, dotColor, pillCls, label };
       });
+      setExpiryItems(rows);
 
-    // Total pantry item count
-    supabase.from('pantry_items').select('*', { count: 'exact', head: true })
-      .then(({ count }) => setPantryCount(count ?? 0));
-  }, [profile]);
+      // Week bars (7 parallel queries)
+      const days = Array.from({ length: 7 }, (_, i) => {
+        const d = new Date(); d.setDate(d.getDate() - (6 - i)); return d;
+      });
+      const weekResults = await Promise.all(days.map(d => {
+        const s = new Date(d); s.setHours(0, 0, 0, 0);
+        const e = new Date(d); e.setHours(23, 59, 59, 999);
+        return supabase.from('meal_logs').select('calories')
+          .gte('eaten_at', s.toISOString()).lte('eaten_at', e.toISOString())
+          .then(({ data }) => ({
+            day: d.toLocaleDateString('en-US', { weekday: 'short' }).toUpperCase(),
+            pct: Math.min(((data ?? []).reduce((s: number, m: any) => s + m.calories, 0)) / (currentProfile.daily_calorie_goal || 1), 1),
+          }));
+      }));
+      setWeekData(weekResults);
+
+      console.log('[Dashboard] fetch success');
+    } catch (err) {
+      console.error('[Dashboard] fetch error:', err);
+    } finally {
+      setDataLoading(false);
+      initialLoadDone.current = true;
+      fetchingRef.current = false;
+    }
+  }, []);
+
+  // Fetch when profile is available (or changes)
+  useEffect(() => {
+    if (profile) fetchDashboard(profile);
+  }, [profile, fetchDashboard]);
+
+  // Refetch on tab focus (after auth has time to refresh)
+  useEffect(() => {
+    let visibilityTimer: ReturnType<typeof setTimeout> | null = null;
+    const onVisible = () => {
+      if (document.visibilityState === 'visible') {
+        if (visibilityTimer) clearTimeout(visibilityTimer);
+        visibilityTimer = setTimeout(() => {
+          console.log('[Dashboard] tab visible — refetching');
+          if (profile) fetchDashboard(profile);
+        }, 1500);
+      }
+    };
+    document.addEventListener('visibilitychange', onVisible);
+    return () => {
+      document.removeEventListener('visibilitychange', onVisible);
+      if (visibilityTimer) clearTimeout(visibilityTimer);
+    };
+  }, [profile, fetchDashboard]);
 
   if (!profile) return (
     <div style={{ display: 'flex', alignItems: 'center', gap: 12, padding: 32, color: 'var(--txt2)' }}>
@@ -192,16 +230,11 @@ export function DashboardPage() {
 
   return (
     <div className="pageWrapper">
-      {/* Header */}
+      {/* Header — no Today/Week/Month toggle (not wired up yet) */}
       <div className="pageHeader">
         <div>
           <h1 className="pageTitle">{getGreeting()}, {profile.name?.split(' ')[0] ?? 'there'} 👋</h1>
           <p className="pageSub">{dateStr} · {profile.fitness_goal ?? 'Bulking'} · {calGoal.toLocaleString()} kcal goal</p>
-        </div>
-        <div className="rangeTabs">
-          <div className="rangeTab active">Today</div>
-          <div className="rangeTab">Week</div>
-          <div className="rangeTab">Month</div>
         </div>
       </div>
 
@@ -225,7 +258,7 @@ export function DashboardPage() {
         <div className="kpi">
           <div className="kpiLabel">Pantry Items</div>
           <div className="kpiVal">
-            {pantryCount === null ? '—' : pantryCount.toLocaleString()}
+            {dataLoading ? <span style={{ opacity: 0.4 }}>—</span> : (pantryCount ?? 0).toLocaleString()}
             <span className="kpiUnit"> items</span>
           </div>
           <div className="kpiDelta" style={{ color: 'var(--txt2)' }}>in your pantry</div>
@@ -249,19 +282,26 @@ export function DashboardPage() {
                 <MacroBar label="Carbohydrates" value={consumed.carbs} goal={goals.carbs} color="var(--acc3)" />
                 <MacroBar label="Fat" value={consumed.fat} goal={goals.fat} color="var(--acc2)" />
 
-                {/* Week bars mini chart */}
                 <div className="weekBars">
-                  {weekData.map((d, i) => (
-                    <div className="wday" key={i}>
-                      <div className="wdayBar" style={{
-                        height: `${Math.max(d.pct * 100, 8)}%`,
-                        background: i === weekData.length - 1 ? 'rgba(200,255,0,.4)' : 'var(--surf3)',
-                      }} />
-                      <div className="wdayLbl" style={{ color: i === weekData.length - 1 ? 'var(--acc)' : undefined }}>
-                        {d.day[0]}
-                      </div>
-                    </div>
-                  ))}
+                  {weekData.length === 0
+                    ? Array.from({ length: 7 }).map((_, i) => (
+                        <div className="wday" key={i}>
+                          <div className="wdayBar" style={{ height: '8%', background: 'var(--surf3)' }} />
+                          <div className="wdayLbl">·</div>
+                        </div>
+                      ))
+                    : weekData.map((d, i) => (
+                        <div className="wday" key={i}>
+                          <div className="wdayBar" style={{
+                            height: `${Math.max(d.pct * 100, 8)}%`,
+                            background: i === weekData.length - 1 ? 'rgba(200,255,0,.4)' : 'var(--surf3)',
+                          }} />
+                          <div className="wdayLbl" style={{ color: i === weekData.length - 1 ? 'var(--acc)' : undefined }}>
+                            {d.day[0]}
+                          </div>
+                        </div>
+                      ))
+                  }
                 </div>
               </div>
             </div>
@@ -273,7 +313,9 @@ export function DashboardPage() {
               <div className="cardTitle">Today's Meals</div>
               <div className="cardLink" onClick={() => navigate('/meals')}>get suggestions →</div>
             </div>
-            {todayLogs.length === 0 ? (
+            {dataLoading ? (
+              <div style={{ padding: '24px 0', textAlign: 'center', color: 'var(--txt2)', fontSize: 13 }}>Loading meals…</div>
+            ) : todayLogs.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '24px 0' }}>
                 <div style={{ fontSize: 32, marginBottom: 8 }}>🍽️</div>
                 <div style={{ fontSize: 13, color: 'var(--txt2)' }}>No meals logged yet. Head to Meals for AI suggestions.</div>
@@ -310,7 +352,9 @@ export function DashboardPage() {
               <div className="cardTitle">Expiring Soon</div>
               <div className="cardLink" onClick={() => navigate('/pantry')}>view pantry</div>
             </div>
-            {expiryItems.length === 0 ? (
+            {dataLoading ? (
+              <div style={{ padding: '20px 0', textAlign: 'center', fontSize: 13, color: 'var(--txt2)' }}>Loading…</div>
+            ) : expiryItems.length === 0 ? (
               <div style={{ textAlign: 'center', padding: '20px 0', fontSize: 13, color: 'var(--txt2)' }}>
                 🎉 No items expiring in the next 2 weeks!
               </div>

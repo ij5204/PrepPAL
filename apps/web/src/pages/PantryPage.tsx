@@ -1,5 +1,6 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
 import { getExpiryStatus } from '@preppal/utils';
 import type { PantryItem, Unit, Category } from '@preppal/types';
 
@@ -14,9 +15,6 @@ const CATEGORY_ICONS: Record<Category, string> = {
   spice: '🧂',
   other: '📦',
 };
-
-
-
 
 interface FormState {
   name: string; quantity: string; unit: Unit; expiry_date: string; category: Category; notes: string;
@@ -202,12 +200,12 @@ function DeleteConfirm({ item, onCancel, onConfirm, deleting }: {
   );
 }
 
-
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function PantryPage() {
   const [items, setItems] = useState<PantryItem[]>([]);
   const [loading, setLoading] = useState(true);
+  const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<Category | 'all'>('all');
   const [modalItem, setModalItem] = useState<PantryItem | null>(null);
@@ -216,47 +214,85 @@ export function PantryPage() {
   const [deleteTarget, setDeleteTarget] = useState<PantryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
-  const initialLoadDone = useRef(false);
   const modalOpenRef = useRef(false);
+  const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
 
-  const fetchItems = useCallback(async () => {
-    if (!initialLoadDone.current) setLoading(true);
-    try {
-      const { data } = await supabase.from('pantry_items').select('*').order('category').order('name');
-      setItems((data as PantryItem[]) ?? []);
-    } finally {
+  // isBackground=true → silent refresh, no spinner (tab focus, realtime).
+  // isBackground=false → initial load, shows spinner.
+  const fetchItems = useCallback(async (isBackground = false) => {
+    if (!isBackground) setLoading(true);
+    setFetchError('');
+
+    // Hard timeout — guarantees loading is cleared even if the query hangs
+    // (e.g. Supabase token refresh blocking getSession on tab focus).
+    const timeoutId = setTimeout(() => {
+      console.warn('[Pantry] fetch timed out after 8s');
       setLoading(false);
-      initialLoadDone.current = true;
+      setFetchError('Request timed out. Please try again.');
+    }, 8000);
+
+    try {
+      // Sync read from Zustand — never blocks, no async token-refresh wait.
+      const session = useAuthStore.getState().session;
+      console.log('[Pantry] fetch start — session exists:', !!session);
+      if (!session) throw new Error('No active session — please refresh the page.');
+
+      const { data, error } = await supabase
+        .from('pantry_items')
+        .select('*')
+        .order('category')
+        .order('name');
+
+      if (error) throw error;
+
+      setItems((data as PantryItem[]) ?? []);
+      setFetchError('');
+      console.log('[Pantry] fetch success —', data?.length ?? 0, 'items');
+    } catch (err: any) {
+      console.error('[Pantry] fetch error:', err);
+      setFetchError(err.message ?? 'Failed to load pantry items');
+      setItems([]);
+    } finally {
+      clearTimeout(timeoutId);
+      setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    fetchItems();
-    const channel = supabase
-      .channel('pantry_realtime')
-      .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, () => {
-        if (!modalOpenRef.current) fetchItems();
-      })
-      .subscribe();
+    // Initial load — shows spinner
+    fetchItems(false);
 
-    // Refetch when tab becomes visible again, but debounce to avoid
-    // racing with Supabase's token refresh (which fires on tab focus too)
-    let visibilityTimer: ReturnType<typeof setTimeout> | null = null;
+    // Unique name per mount prevents stale channels from React Strict Mode
+    // double-invoke (mount → unmount → mount) from conflicting.
+    const channel = supabase
+      .channel(`pantry_rt_${Date.now()}`)
+      .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, () => {
+        console.log('[Pantry] realtime change — silent refresh');
+        if (!modalOpenRef.current) fetchItems(true);
+      })
+      .subscribe((status) => {
+        console.log('[Pantry] realtime status:', status);
+      });
+
+    // Tab-focus refresh — silent, no spinner
     const onVisible = () => {
       if (document.visibilityState === 'visible' && !modalOpenRef.current) {
-        if (visibilityTimer) clearTimeout(visibilityTimer);
-        visibilityTimer = setTimeout(() => { fetchItems(); }, 1500);
+        if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
+        visibilityTimerRef.current = setTimeout(() => {
+          console.log('[Pantry] tab visible — silent refresh');
+          fetchItems(true);
+        }, 800);
       }
     };
-
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
+      console.log('[Pantry] cleanup');
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', onVisible);
-      if (visibilityTimer) clearTimeout(visibilityTimer);
+      if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
     };
   }, [fetchItems]);
 
@@ -266,7 +302,7 @@ export function PantryPage() {
     try {
       await supabase.from('pantry_items').delete().eq('id', deleteTarget.id);
       setDeleteTarget(null);
-      await fetchItems();
+      await fetchItems(true);
     } finally {
       setDeleting(false);
     }
@@ -292,7 +328,6 @@ export function PantryPage() {
   ];
 
   const COMMON_ITEMS: Array<{ name: string; category: Category; unit: Unit }> = [
-    // Pantry staples
     { name: 'Olive Oil', category: 'pantry', unit: 'ml' },
     { name: 'Vegetable Oil', category: 'pantry', unit: 'ml' },
     { name: 'White Rice', category: 'pantry', unit: 'g' },
@@ -313,7 +348,6 @@ export function PantryPage() {
     { name: 'Oats', category: 'pantry', unit: 'g' },
     { name: 'Peanut Butter', category: 'pantry', unit: 'g' },
     { name: 'Apple Cider Vinegar', category: 'pantry', unit: 'ml' },
-    // Spices
     { name: 'Salt', category: 'spice', unit: 'g' },
     { name: 'Black Pepper', category: 'spice', unit: 'g' },
     { name: 'Garlic Powder', category: 'spice', unit: 'g' },
@@ -324,7 +358,6 @@ export function PantryPage() {
     { name: 'Oregano', category: 'spice', unit: 'g' },
     { name: 'Chili Flakes', category: 'spice', unit: 'g' },
     { name: 'Cinnamon', category: 'spice', unit: 'g' },
-    // Produce
     { name: 'Garlic', category: 'produce', unit: 'pieces' },
     { name: 'Onion', category: 'produce', unit: 'pieces' },
     { name: 'Tomatoes', category: 'produce', unit: 'pieces' },
@@ -335,14 +368,12 @@ export function PantryPage() {
     { name: 'Bell Pepper', category: 'produce', unit: 'pieces' },
     { name: 'Broccoli', category: 'produce', unit: 'g' },
     { name: 'Avocado', category: 'produce', unit: 'pieces' },
-    // Dairy
     { name: 'Eggs', category: 'dairy', unit: 'pieces' },
     { name: 'Milk', category: 'dairy', unit: 'ml' },
     { name: 'Butter', category: 'dairy', unit: 'g' },
     { name: 'Cheddar Cheese', category: 'dairy', unit: 'g' },
     { name: 'Greek Yogurt', category: 'dairy', unit: 'g' },
     { name: 'Parmesan', category: 'dairy', unit: 'g' },
-    // Protein
     { name: 'Chicken Breast', category: 'protein', unit: 'g' },
     { name: 'Ground Beef', category: 'protein', unit: 'g' },
     { name: 'Salmon', category: 'protein', unit: 'g' },
@@ -371,13 +402,90 @@ export function PantryPage() {
     return { label: `${daysUntilExpiry} days`, cls: 'pillG' };
   };
 
+  // ── Render helpers ────────────────────────────────────────────────────────
+
+  const renderTableBody = () => {
+    if (loading) {
+      return (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 32, color: 'var(--txt2)' }}>
+          <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--surf3)', borderTopColor: 'var(--acc)', borderRadius: '50%' }} />
+          Loading items…
+        </div>
+      );
+    }
+
+    if (fetchError) {
+      return (
+        <div style={{ padding: '40px 32px', textAlign: 'center' }}>
+          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--txt)', marginBottom: 6 }}>Failed to load pantry</div>
+          <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 16 }}>{fetchError}</div>
+          <button className="tbBtn" onClick={() => fetchItems()}>Retry</button>
+        </div>
+      );
+    }
+
+    if (filtered.length === 0) {
+      return (
+        <div style={{ padding: '56px 32px', textAlign: 'center' }}>
+          <div style={{ fontSize: 40, marginBottom: 14 }}>{activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}</div>
+          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--txt)', marginBottom: 6 }}>
+            {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
+          </div>
+          <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 20 }}>
+            {search || activeCategory !== 'all' ? 'Try a different search or category' : 'Add your first item to get started'}
+          </div>
+          {!search && activeCategory === 'all' && (
+            <button className="tbBtn" onClick={() => { setModalItem(null); setModalOpen(true); }}>+ Add First Item</button>
+          )}
+        </div>
+      );
+    }
+
+    return (
+      <table className="ptable">
+        <thead>
+          <tr>
+            <th>Item</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Expiry</th><th>Status</th><th>Action</th>
+          </tr>
+        </thead>
+        <tbody>
+          {filtered.map(item => {
+            const pill = getExpiryPill(item);
+            return (
+              <tr key={item.id}>
+                <td style={{ fontWeight: 500 }}>{CATEGORY_ICONS[item.category]} {item.name}</td>
+                <td><span className={`catBadge ${getCatClass(item.category)}`}>{item.category}</span></td>
+                <td><input className="qtyInput" type="number" defaultValue={item.quantity} /></td>
+                <td style={{ color: 'var(--txt2)' }}>{item.unit}</td>
+                <td style={{ color: pill.cls === 'pillR' ? '#FF6040' : 'var(--txt2)' }}>{item.expiry_date ?? '—'}</td>
+                <td>
+                  {pill.label !== '—'
+                    ? <span className={`expPill ${pill.cls}`} style={{ margin: 0 }}>{pill.label}</span>
+                    : <span style={{ color: 'var(--txt3)', fontSize: 12 }}>—</span>}
+                </td>
+                <td style={{ display: 'flex', gap: 6 }}>
+                  <button className="trDel" style={{ color: 'var(--txt2)', fontSize: 12, padding: '4px 10px' }}
+                    onClick={() => { setModalItem(item); setModalOpen(true); }}>Edit</button>
+                  <button className="trDel" onClick={() => setDeleteTarget(item)}>✕</button>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+    );
+  };
+
   return (
     <div className="pageWrapper">
       {/* Header */}
       <div className="pageHeader">
         <div>
           <h1 className="pageTitle">Pantry</h1>
-          <p className="pageSub">{items.length} items · {items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon</p>
+          <p className="pageSub">
+            {loading ? 'Loading…' : `${items.length} items · ${items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon`}
+          </p>
         </div>
         <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
           <div className="filterBar">
@@ -405,57 +513,7 @@ export function PantryPage() {
 
       {/* Table */}
       <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {loading ? (
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 32, color: 'var(--txt2)' }}>
-            <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--surf3)', borderTopColor: 'var(--acc)', borderRadius: '50%' }} />
-            Loading items…
-          </div>
-        ) : filtered.length === 0 ? (
-          <div style={{ padding: '56px 32px', textAlign: 'center' }}>
-            <div style={{ fontSize: 40, marginBottom: 14 }}>{activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}</div>
-            <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--txt)', marginBottom: 6 }}>
-              {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
-            </div>
-            <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 20 }}>
-              {search || activeCategory !== 'all' ? 'Try a different search or category' : 'Add your first item to get started'}
-            </div>
-            {!search && activeCategory === 'all' && (
-              <button className="tbBtn" onClick={() => { setModalItem(null); setModalOpen(true); }}>+ Add First Item</button>
-            )}
-          </div>
-        ) : (
-          <table className="ptable">
-            <thead>
-              <tr>
-                <th>Item</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Expiry</th><th>Status</th><th>Action</th>
-              </tr>
-            </thead>
-            <tbody>
-              {filtered.map(item => {
-                const pill = getExpiryPill(item);
-                return (
-                  <tr key={item.id}>
-                    <td style={{ fontWeight: 500 }}>{CATEGORY_ICONS[item.category]} {item.name}</td>
-                    <td><span className={`catBadge ${getCatClass(item.category)}`}>{item.category}</span></td>
-                    <td><input className="qtyInput" type="number" defaultValue={item.quantity} /></td>
-                    <td style={{ color: 'var(--txt2)' }}>{item.unit}</td>
-                    <td style={{ color: pill.cls === 'pillR' ? '#FF6040' : 'var(--txt2)' }}>{item.expiry_date ?? '—'}</td>
-                    <td>
-                      {pill.label !== '—'
-                        ? <span className={`expPill ${pill.cls}`} style={{ margin: 0 }}>{pill.label}</span>
-                        : <span style={{ color: 'var(--txt3)', fontSize: 12 }}>—</span>}
-                    </td>
-                    <td style={{ display: 'flex', gap: 6 }}>
-                      <button className="trDel" style={{ color: 'var(--txt2)', fontSize: 12, padding: '4px 10px' }}
-                        onClick={() => { setModalItem(item); setModalOpen(true); }}>Edit</button>
-                      <button className="trDel" onClick={() => setDeleteTarget(item)}>✕</button>
-                    </td>
-                  </tr>
-                );
-              })}
-            </tbody>
-          </table>
-        )}
+        {renderTableBody()}
         <button
           style={{ width: '100%', border: 'none', borderTop: '1px dashed var(--bdr2)', padding: 11, borderRadius: 0, color: 'var(--txt3)', background: 'none', cursor: 'pointer', fontSize: 12 }}
           onClick={() => { setModalItem(null); setModalOpen(true); }}
@@ -463,7 +521,7 @@ export function PantryPage() {
       </div>
 
       {/* Common pantry suggestions */}
-      {!loading && commonSuggestions.length > 0 && (
+      {!loading && !fetchError && commonSuggestions.length > 0 && (
         <div className="card" style={{ marginTop: 16 }}>
           <div className="cardHd" style={{ marginBottom: 10 }}>
             <div className="cardTitle">💡 Common Household Items</div>
@@ -510,7 +568,7 @@ export function PantryPage() {
           item={modalItem}
           preset={modalItem ? null : modalPreset}
           onClose={() => { setModalOpen(false); setModalPreset(null); }}
-          onSaved={fetchItems}
+          onSaved={() => fetchItems()}
         />
       )}
 
