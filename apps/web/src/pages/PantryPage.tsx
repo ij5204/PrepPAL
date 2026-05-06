@@ -1,7 +1,14 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
 import { supabase } from '../lib/supabase';
+import { useAuthStore } from '../stores/authStore';
 import { getExpiryStatus } from '@preppal/utils';
 import type { PantryItem, Unit, Category } from '@preppal/types';
+
+// Module-level cache — survives React Router navigation (component unmount/remount).
+// When the user navigates away and back, the component re-initialises from this
+// cache so existing data is shown immediately while a background refresh runs.
+let _cache: PantryItem[] = [];
+let _cacheReady = false;
 
 const UNITS: Unit[] = ['g', 'kg', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
 const CATEGORIES: Category[] = ['produce', 'dairy', 'protein', 'pantry', 'spice', 'other'];
@@ -202,8 +209,10 @@ function DeleteConfirm({ item, onCancel, onConfirm, deleting }: {
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
 export function PantryPage() {
-  const [items, setItems] = useState<PantryItem[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Seed from module cache so navigating back shows data before the refresh lands.
+  const [items, setItems] = useState<PantryItem[]>(_cache);
+  // Only show the full-page spinner when we have no data at all.
+  const [loading, setLoading] = useState(!_cacheReady);
   const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
   const [activeCategory, setActiveCategory] = useState<Category | 'all'>('all');
@@ -215,30 +224,48 @@ export function PantryPage() {
 
   const modalOpenRef = useRef(false);
   const visibilityTimerRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const isFetchingRef = useRef(false);
+  const isMountedRef = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
 
-  // isBackground=true → silent refresh, no spinner (tab focus, realtime).
-  // isBackground=false → initial load, shows spinner.
   const fetchItems = useCallback(async (isBackground = false) => {
-    if (!isBackground) setLoading(true);
-    setFetchError('');
+    if (isFetchingRef.current) {
+      console.log('[Pantry] fetchPantry SKIP — already in flight');
+      return;
+    }
+    isFetchingRef.current = true;
+    console.log('[Pantry] fetchPantry START', isBackground ? '(background)' : '(foreground)');
 
-    // Hard timeout — guarantees loading is cleared even if the query hangs
-    // (e.g. Supabase token refresh blocking getSession on tab focus).
-    const timeoutId = setTimeout(() => {
-      console.warn('[Pantry] fetch timed out after 8s');
-      setLoading(false);
-      setFetchError('Request timed out. Please try again.');
-    }, 8000);
+    // Only show the full-page spinner when we have no data to display yet.
+    // Background refreshes (navigation return, tab focus, realtime) never
+    // blank the page — existing items stay visible until the new response lands.
+    if (!isBackground && !_cacheReady) {
+      setLoading(true);
+      setFetchError('');
+    }
+
+    const { session } = useAuthStore.getState();
+    console.log('[Pantry] session:', !!session, '| user_id:', session?.user?.id ?? 'none');
+
+    if (!session) {
+      console.warn('[Pantry] fetchPantry SKIP — no session');
+      isFetchingRef.current = false;
+      if (!_cacheReady) {
+        setFetchError('Please log in to view your pantry.');
+        setLoading(false);
+      }
+      return;
+    }
 
     try {
-      // getSession() forces a token refresh if the JWT is expired.
-      // Never read the stale Zustand session here — it won't refresh an expired token.
-      const { data: { session }, error: sessionErr } = await supabase.auth.getSession();
-      if (sessionErr) throw sessionErr;
-      console.log('[Pantry] fetch start — session exists:', !!session);
-      if (!session) throw new Error('Your session expired. Please sign in again.');
+      const t0 = performance.now();
+      console.log('[Pantry] querying table: pantry_items | user_id:', session.user.id);
 
       const { data, error } = await supabase
         .from('pantry_items')
@@ -246,43 +273,65 @@ export function PantryPage() {
         .order('category')
         .order('name');
 
-      if (error) throw error;
+      const ms = Math.round(performance.now() - t0);
+      console.log('[Pantry] SDK round-trip:', ms, 'ms');
 
-      setItems((data as PantryItem[]) ?? []);
+      if (!isMountedRef.current) return;
+
+      if (error) {
+        console.error('[Pantry] fetchPantry ERROR:', {
+          message: error.message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          status: (error as any).status,
+        });
+        throw error;
+      }
+
+      // Update module cache so the next mount gets fresh data immediately.
+      _cache = (data as PantryItem[]) ?? [];
+      _cacheReady = true;
+      setItems(_cache);
       setFetchError('');
-      console.log('[Pantry] fetch success —', data?.length ?? 0, 'items');
+      console.log('[Pantry] fetchPantry SUCCESS', _cache.length, 'items in', ms, 'ms');
     } catch (err: any) {
-      console.error('[Pantry] fetch error:', err);
-      setFetchError(err.message ?? 'Failed to load pantry items');
-      setItems([]);
+      if (!isMountedRef.current) return;
+      console.error('[Pantry] fetchPantry ERROR:', err);
+      // Only surface the error UI when there is no cached data to show.
+      // If we already have items on screen, a silent background failure is fine.
+      if (!_cacheReady) {
+        setFetchError(err.message ?? 'Failed to load pantry items.');
+      }
     } finally {
-      clearTimeout(timeoutId);
-      setLoading(false);
+      console.log('[Pantry] fetchPantry FINALLY');
+      isFetchingRef.current = false;
+      if (isMountedRef.current) {
+        setLoading(false);
+      }
     }
   }, []);
 
   useEffect(() => {
-    // Initial load — shows spinner
-    fetchItems(false);
+    // If the cache already has data (navigating back), do a silent background
+    // refresh so the user sees their items immediately without a spinner.
+    fetchItems(_cacheReady);
 
-    // Unique name per mount prevents stale channels from React Strict Mode
-    // double-invoke (mount → unmount → mount) from conflicting.
     const channel = supabase
       .channel(`pantry_rt_${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, () => {
-        console.log('[Pantry] realtime change — silent refresh');
+        console.log('[Pantry] realtime change — background refresh');
         if (!modalOpenRef.current) fetchItems(true);
       })
       .subscribe((status) => {
-        console.log('[Pantry] realtime status:', status);
+        console.log('[Pantry] realtime SUBSCRIBE', status);
       });
 
-    // Tab-focus refresh — silent, no spinner
     const onVisible = () => {
       if (document.visibilityState === 'visible' && !modalOpenRef.current) {
         if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
         visibilityTimerRef.current = setTimeout(() => {
-          console.log('[Pantry] tab visible — silent refresh');
+          console.log('[Pantry] visibility REFRESH');
           fetchItems(true);
         }, 800);
       }
@@ -290,7 +339,7 @@ export function PantryPage() {
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
-      console.log('[Pantry] cleanup');
+      console.log('[Pantry] realtime CLEANUP');
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', onVisible);
       if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
@@ -569,7 +618,7 @@ export function PantryPage() {
           item={modalItem}
           preset={modalItem ? null : modalPreset}
           onClose={() => { setModalOpen(false); setModalPreset(null); }}
-          onSaved={() => fetchItems()}
+          onSaved={() => fetchItems(true)}
         />
       )}
 

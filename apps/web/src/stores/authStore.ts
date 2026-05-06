@@ -62,7 +62,12 @@ export const useAuthStore = create<AuthState>((set, get) => ({
   },
 
   refreshProfile: async () => {
-    const { data: { user } } = await supabase.auth.getUser();
+    // Use session.user instead of supabase.auth.getUser() to avoid acquiring
+    // the SDK auth lock and making a redundant network request to /auth/v1/user.
+    // getUser() holds the lock while it awaits the network response, which
+    // blocks any concurrent supabase.from() call that also needs the lock
+    // (every PostgREST query internally calls getSession() to get the JWT).
+    const user = get().session?.user ?? null;
     if (!user) return;
     const { data } = await supabase.from('users').select('*').eq('id', user.id).single();
     if (data) set({ profile: data as PrepPALUser });
