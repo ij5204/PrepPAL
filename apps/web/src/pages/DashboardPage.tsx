@@ -347,8 +347,6 @@ export function DashboardPage() {
             )}
           </div>
         </div>
-
-        {/* Right column */}
         <div style={{ display: 'flex', flexDirection: 'column', gap: 16 }}>
           {/* Expiring soon */}
           <div className="card">
