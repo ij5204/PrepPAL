@@ -8,6 +8,7 @@ import { PantryPage } from './pages/PantryPage';
 import { MealsPage } from './pages/MealsPage';
 import { GroceryPage } from './pages/GroceryPage';
 import { ProfilePage } from './pages/ProfilePage';
+import { NutritionPage } from './pages/NutritionPage';
 
 function RequireAuth({ children }: { children: React.ReactNode }) {
   const { session, initialized } = useAuthStore();
@@ -59,6 +60,7 @@ export default function App() {
         <Route path="meals" element={<MealsPage />} />
         <Route path="grocery" element={<GroceryPage />} />
         <Route path="profile" element={<ProfilePage />} />
+        <Route path="nutrition" element={<NutritionPage />} />
       </Route>
       <Route path="*" element={<Navigate to="/" replace />} />
     </Routes>

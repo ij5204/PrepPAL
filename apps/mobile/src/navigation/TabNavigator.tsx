@@ -6,12 +6,14 @@ import { HomeScreen } from '../screens/home/HomeScreen';
 import { PantryScreen } from '../screens/pantry/PantryScreen';
 import { MealsScreen } from '../screens/meals/MealsScreen';
 import { GroceryScreen } from '../screens/grocery/GroceryScreen';
+import { NutritionScreen } from '../screens/nutrition/NutritionScreen';
 
 export type TabParamList = {
   Home: undefined;
   Pantry: undefined;
   Meals: undefined;
   Grocery: undefined;
+  Nutrition: undefined;
 };
 
 const Tab = createBottomTabNavigator<TabParamList>();
@@ -21,6 +23,7 @@ const icons: Record<string, string> = {
   Pantry: '🥦',
   Meals: '🍳',
   Grocery: '🛒',
+  Nutrition: '📊',
 };
 
 export function TabNavigator() {
@@ -54,6 +57,7 @@ export function TabNavigator() {
       <Tab.Screen name="Pantry" component={PantryScreen} />
       <Tab.Screen name="Meals" component={MealsScreen} options={{ title: 'Meal Ideas' }} />
       <Tab.Screen name="Grocery" component={GroceryScreen} options={{ title: 'Grocery List' }} />
+      <Tab.Screen name="Nutrition" component={NutritionScreen} options={{ title: 'Nutrition' }} />
     </Tab.Navigator>
   );
 }

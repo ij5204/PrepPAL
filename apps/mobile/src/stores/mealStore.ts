@@ -5,6 +5,14 @@ import { startOfToday } from '@preppal/utils';
 import type { MealLog, MealSuggestion, DailyNutritionSummary } from '@preppal/types';
 import type { LogMealInput } from '@preppal/validation';
 
+export interface DayMacros {
+  date: string;
+  calories: number;
+  protein_g: number;
+  carbs_g: number;
+  fat_g: number;
+}
+
 interface MealState {
   suggestions: MealSuggestion[];
   suggestionsLoading: boolean;
@@ -14,6 +22,10 @@ interface MealState {
 
   todayLogs: MealLog[];
   weekCaloriesByDay: Array<{ date: string; calories: number }>;
+  weekData: DayMacros[];
+  weekDataLoading: boolean;
+  monthData: DayMacros[];
+  monthDataLoading: boolean;
   dailySummary: DailyNutritionSummary;
   logsLoading: boolean;
 
@@ -26,6 +38,8 @@ interface MealState {
   ) => Promise<{ data: import('@preppal/types').NutritionEstimate | null; error: Error | null }>;
   fetchTodayLogs: () => Promise<void>;
   fetchWeekCalories: () => Promise<void>;
+  fetchWeekData: () => Promise<void>;
+  fetchMonthData: () => Promise<void>;
   subscribeRealtime: () => () => void;
 }
 
@@ -50,6 +64,10 @@ export const useMealStore = create<MealState>((set, get) => ({
 
   todayLogs: [],
   weekCaloriesByDay: [],
+  weekData: [],
+  weekDataLoading: false,
+  monthData: [],
+  monthDataLoading: false,
   dailySummary: emptyDailySummary,
   logsLoading: false,
 
@@ -199,6 +217,92 @@ export const useMealStore = create<MealState>((set, get) => ({
     }));
 
     set({ weekCaloriesByDay });
+  },
+
+  fetchWeekData: async () => {
+    set({ weekDataLoading: true });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const end = startOfToday();
+      const start = new Date(end);
+      start.setDate(start.getDate() - 6);
+      start.setHours(0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from('meal_logs')
+        .select('eaten_at, calories, protein_g, carbs_g, fat_g')
+        .eq('user_id', user.id)
+        .gte('eaten_at', start.toISOString())
+        .order('eaten_at', { ascending: true });
+
+      const byDay = new Map<string, { calories: number; protein_g: number; carbs_g: number; fat_g: number }>();
+      for (let i = 0; i < 7; i++) {
+        const d = new Date(start);
+        d.setDate(start.getDate() + i);
+        byDay.set(formatDayKey(d), { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+      }
+
+      for (const row of data ?? []) {
+        const key = formatDayKey(new Date(row.eaten_at));
+        if (!byDay.has(key)) continue;
+        const cur = byDay.get(key)!;
+        byDay.set(key, {
+          calories: cur.calories + row.calories,
+          protein_g: cur.protein_g + Number(row.protein_g),
+          carbs_g: cur.carbs_g + Number(row.carbs_g),
+          fat_g: cur.fat_g + Number(row.fat_g),
+        });
+      }
+
+      const weekData = Array.from(byDay.entries()).map(([date, macros]) => ({ date, ...macros }));
+      set({ weekData });
+    } finally {
+      set({ weekDataLoading: false });
+    }
+  },
+
+  fetchMonthData: async () => {
+    set({ monthDataLoading: true });
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!user) return;
+
+      const now = new Date();
+      const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1, 0, 0, 0, 0);
+
+      const { data } = await supabase
+        .from('meal_logs')
+        .select('eaten_at, calories, protein_g, carbs_g, fat_g')
+        .eq('user_id', user.id)
+        .gte('eaten_at', startOfMonth.toISOString())
+        .order('eaten_at', { ascending: true });
+
+      const byDay = new Map<string, { calories: number; protein_g: number; carbs_g: number; fat_g: number }>();
+      const dayCount = now.getDate();
+      for (let i = 1; i <= dayCount; i++) {
+        const d = new Date(now.getFullYear(), now.getMonth(), i);
+        byDay.set(formatDayKey(d), { calories: 0, protein_g: 0, carbs_g: 0, fat_g: 0 });
+      }
+
+      for (const row of data ?? []) {
+        const key = formatDayKey(new Date(row.eaten_at));
+        if (!byDay.has(key)) continue;
+        const cur = byDay.get(key)!;
+        byDay.set(key, {
+          calories: cur.calories + row.calories,
+          protein_g: cur.protein_g + Number(row.protein_g),
+          carbs_g: cur.carbs_g + Number(row.carbs_g),
+          fat_g: cur.fat_g + Number(row.fat_g),
+        });
+      }
+
+      const monthData = Array.from(byDay.entries()).map(([date, macros]) => ({ date, ...macros }));
+      set({ monthData });
+    } finally {
+      set({ monthDataLoading: false });
+    }
   },
 
   subscribeRealtime: () => {
