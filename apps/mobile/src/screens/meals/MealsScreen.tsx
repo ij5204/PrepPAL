@@ -45,7 +45,7 @@ export function MealsScreen() {
 
     const payload = {
       meal_name: meal.meal_name,
-      calories: meal.calories,
+      calories: meal.total_calories,
       protein_g: meal.protein_g,
       carbs_g: meal.carbs_g,
       fat_g: meal.fat_g,
@@ -266,7 +266,7 @@ function MealCard({
 
       <View style={s.macroRow}>
         {[
-          { label: 'kcal', value: meal.calories, color: '#22c55e' },
+          { label: 'kcal', value: meal.total_calories, color: '#22c55e' },
           { label: 'Protein', value: `${meal.protein_g}g`, color: '#3b82f6' },
           { label: 'Carbs', value: `${meal.carbs_g}g`, color: '#f59e0b' },
           { label: 'Fat', value: `${meal.fat_g}g`, color: '#f97316' },
@@ -291,7 +291,7 @@ function MealCard({
       {expanded && (
         <View style={s.expanded}>
           <Text style={s.sectionLabel}>Instructions</Text>
-          <Text style={s.instructions}>{meal.instructions}</Text>
+          <Text style={s.instructions}>{meal.step_by_step_instructions.join('\n')}</Text>
 
           <Text style={s.sectionLabel}>Ingredients used</Text>
           {meal.ingredients_used.map((i, idx) => (
