@@ -568,9 +568,9 @@ function EducationalMicroCards({ delay }: { delay: number }) {
   return (
     <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay }}>
       <SecTitle>Learn</SecTitle>
-      <div style={{ display: 'flex', gap: 12, overflowX: 'auto', paddingBottom: 8, scrollbarWidth: 'none' }}>
+      <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fit, minmax(200px, 1fr))', gap: 12 }}>
         {EDU_CARDS.map((card, i) => (
-          <div key={i} style={{ minWidth: 220, maxWidth: 220, padding: '16px 18px', background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 'var(--rad)', flexShrink: 0 }}>
+          <div key={i} style={{ padding: '16px 18px', background: 'var(--surf2)', border: '1px solid var(--bdr)', borderRadius: 'var(--rad)' }}>
             <div style={{ fontSize: 22, marginBottom: 8 }}>{card.icon}</div>
             <p style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt)', marginBottom: 6 }}>{card.title}</p>
             <p style={{ fontSize: 12, color: 'var(--txt3)', lineHeight: 1.6 }}>{card.body}</p>
