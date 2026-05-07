@@ -246,132 +246,140 @@ function TodayView({ logs, calorieGoal, macroGoals, pantryCount, expiringCount }
 
   return (
     <>
-      {/* Calorie overview */}
-      <motion.div className="card p-5 mb-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
-        <h3 className="text-sm font-semibold text-text-primary mb-5">Calories Today</h3>
-        <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
-          <CalorieRing consumed={Math.round(calories)} goal={calorieGoal} />
-          <div style={{ flex: 1, minWidth: 200 }}>
-            <div style={{ marginBottom: 16 }}>
-              <span style={{ fontSize: 14, fontWeight: 600, color: isOver ? '#EF4444' : 'var(--acc)' }}>
-                {isOver
-                  ? `${Math.abs(Math.round(remaining))} kcal over goal`
-                  : `${Math.round(remaining)} kcal remaining`}
-              </span>
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-              <MacroBar label="Protein" value={protein} goal={macroGoals.protein} color="#3B82F6" />
-              <MacroBar label="Carbs"   value={carbs}   goal={macroGoals.carbs}   color="#F59E0B" />
-              <MacroBar label="Fat"     value={fat}     goal={macroGoals.fat}     color="#F97316" />
-            </div>
-          </div>
-        </div>
-
-        {totalCals > 0 && (
-          <div style={{ marginTop: 20 }}>
-            <p style={{ fontSize: 11, color: 'var(--txt3)', marginBottom: 8, letterSpacing: '.3px', textTransform: 'uppercase' }}>Macro Split</p>
-            <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
-              <motion.div style={{ backgroundColor: '#3B82F6', height: '100%' }} initial={{ flex: 0 }} animate={{ flex: proteinPct }} transition={{ delay: 0.4, duration: 0.8 }} />
-              <motion.div style={{ backgroundColor: '#F59E0B', height: '100%' }} initial={{ flex: 0 }} animate={{ flex: carbsPct }}   transition={{ delay: 0.4, duration: 0.8 }} />
-              <motion.div style={{ backgroundColor: '#F97316', height: '100%' }} initial={{ flex: 0 }} animate={{ flex: fatPct }}     transition={{ delay: 0.4, duration: 0.8 }} />
-            </div>
-            <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
-              {[
-                { label: 'Protein', pct: proteinPct, g: Math.round(protein), color: '#3B82F6' },
-                { label: 'Carbs',   pct: carbsPct,   g: Math.round(carbs),   color: '#F59E0B' },
-                { label: 'Fat',     pct: fatPct,     g: Math.round(fat),     color: '#F97316' },
-              ].map(m => (
-                <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-                  <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: m.color }} />
-                  <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{m.label} · {m.pct}% · {m.g}g</span>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-      </motion.div>
-
-      {/* Insights */}
-      <motion.div className="card p-5 mb-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
-        <h3 className="text-sm font-semibold text-text-primary mb-3">⚡ Insights</h3>
-        {insights.map((ins, i) => <InsightRow key={i} insight={ins} />)}
-      </motion.div>
-
-      {/* Meal Timeline */}
-      <motion.div className="card p-5 mb-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
-        <h3 className="text-sm font-semibold text-text-primary mb-4">Meal Timeline</h3>
-        {logs.length === 0 ? (
-          <p style={{ fontSize: 13, color: 'var(--txt3)', textAlign: 'center', padding: '20px 0' }}>
-            No meals logged today. Head to Meal Suggestions to log your first meal.
-          </p>
-        ) : (
-          MEAL_ORDER.map(type => {
-            const meals = groups.get(type);
-            if (!meals?.length) return null;
-            return (
-              <div key={type} style={{ marginBottom: 20 }}>
-                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
-                  <span style={{ fontSize: 16 }}>{MEAL_ICONS[type]}</span>
-                  <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt2)', letterSpacing: '.5px', textTransform: 'uppercase' }}>{type}</span>
-                </div>
-                <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
-                  {meals.map(meal => (
-                    <div key={meal.id} style={{ padding: '12px 14px', background: 'var(--surf2)', borderRadius: 'var(--rad)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start' }}>
-                      <div>
-                        <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4 }}>
-                          <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)' }}>{meal.meal_name}</span>
-                          {meal.claude_suggestion && (
-                            <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', background: 'rgba(200,255,0,0.12)', color: 'var(--acc)', borderRadius: 4, letterSpacing: '.5px' }}>AI</span>
-                          )}
-                        </div>
-                        <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
-                          <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{formatTime(meal.eaten_at)}</span>
-                          <span style={{ fontSize: 11, color: '#3B82F6', fontWeight: 600 }}>P {Math.round(meal.protein_g)}g</span>
-                          <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>C {Math.round(meal.carbs_g)}g</span>
-                          <span style={{ fontSize: 11, color: '#F97316', fontWeight: 600 }}>F {Math.round(meal.fat_g)}g</span>
-                        </div>
-                      </div>
-                      <div style={{ textAlign: 'right', flexShrink: 0 }}>
-                        <span style={{ fontFamily: 'var(--fd)', fontSize: 22, color: 'var(--acc)' }}>{meal.calories}</span>
-                        <span style={{ fontSize: 11, color: 'var(--txt3)', marginLeft: 2 }}>kcal</span>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            );
-          })
-        )}
-      </motion.div>
-
-      {/* Pantry hints */}
-      <motion.div className="card p-5 mb-4" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
-        <h3 className="text-sm font-semibold text-text-primary mb-3">🥦 Pantry Status</h3>
-        <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-            <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>📦</div>
-            <span style={{ fontSize: 13, color: 'var(--txt2)' }}>
-              <strong style={{ color: 'var(--txt)' }}>{pantryCount}</strong> items available for meal suggestions
-            </span>
-          </div>
-          {expiringCount > 0 && (
-            <>
-              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
-                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>⚠️</div>
-                <span style={{ fontSize: 13, color: 'var(--txt2)' }}>
-                  <strong style={{ color: '#F59E0B' }}>{expiringCount}</strong> items expiring soon
+      <div className="twoCol">
+        {/* Left column */}
+        <div className="stackSm">
+          {/* Calorie overview */}
+          <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.05 }}>
+          <h3 className="text-sm font-semibold text-text-primary mb-5">Calories Today</h3>
+          <div style={{ display: 'flex', gap: 32, alignItems: 'center', flexWrap: 'wrap' }}>
+            <CalorieRing consumed={Math.round(calories)} goal={calorieGoal} />
+            <div style={{ flex: 1, minWidth: 240 }}>
+              <div style={{ marginBottom: 16 }}>
+                <span style={{ fontSize: 14, fontWeight: 600, color: isOver ? '#EF4444' : 'var(--acc)' }}>
+                  {isOver
+                    ? `${Math.abs(Math.round(remaining))} kcal over goal`
+                    : `${Math.round(remaining)} kcal remaining`}
                 </span>
               </div>
-              <div style={{ fontSize: 12, color: 'var(--acc)', padding: '9px 13px', background: 'rgba(200,255,0,0.06)', borderRadius: 8, borderLeft: '2px solid var(--acc)' }}>
-                Use expiring items first in your next meal suggestion.
+              <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+                <MacroBar label="Protein" value={protein} goal={macroGoals.protein} color="#3B82F6" />
+                <MacroBar label="Carbs"   value={carbs}   goal={macroGoals.carbs}   color="#F59E0B" />
+                <MacroBar label="Fat"     value={fat}     goal={macroGoals.fat}     color="#F97316" />
               </div>
-            </>
+            </div>
+          </div>
+
+          {totalCals > 0 && (
+            <div style={{ marginTop: 20 }}>
+              <p style={{ fontSize: 11, color: 'var(--txt3)', marginBottom: 8, letterSpacing: '.3px', textTransform: 'uppercase' }}>Macro Split</p>
+              <div style={{ height: 8, borderRadius: 4, overflow: 'hidden', display: 'flex' }}>
+                <motion.div style={{ backgroundColor: '#3B82F6', height: '100%' }} initial={{ flex: 0 }} animate={{ flex: proteinPct }} transition={{ delay: 0.4, duration: 0.8 }} />
+                <motion.div style={{ backgroundColor: '#F59E0B', height: '100%' }} initial={{ flex: 0 }} animate={{ flex: carbsPct }}   transition={{ delay: 0.4, duration: 0.8 }} />
+                <motion.div style={{ backgroundColor: '#F97316', height: '100%' }} initial={{ flex: 0 }} animate={{ flex: fatPct }}     transition={{ delay: 0.4, duration: 0.8 }} />
+              </div>
+              <div style={{ display: 'flex', gap: 16, marginTop: 8, flexWrap: 'wrap' }}>
+                {[
+                  { label: 'Protein', pct: proteinPct, g: Math.round(protein), color: '#3B82F6' },
+                  { label: 'Carbs',   pct: carbsPct,   g: Math.round(carbs),   color: '#F59E0B' },
+                  { label: 'Fat',     pct: fatPct,     g: Math.round(fat),     color: '#F97316' },
+                ].map(m => (
+                  <div key={m.label} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <div style={{ width: 8, height: 8, borderRadius: 2, backgroundColor: m.color }} />
+                    <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{m.label} · {m.pct}% · {m.g}g</span>
+                  </div>
+                ))}
+              </div>
+            </div>
           )}
-          {pantryCount === 0 && (
-            <p style={{ fontSize: 13, color: 'var(--txt3)' }}>No pantry items yet. Add items to get meal suggestions.</p>
-          )}
+          </motion.div>
+
+          {/* Meal Timeline */}
+          <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.15 }}>
+            <h3 className="text-sm font-semibold text-text-primary mb-4">Meal Timeline</h3>
+            {logs.length === 0 ? (
+              <p style={{ fontSize: 13, color: 'var(--txt3)', textAlign: 'center', padding: '20px 0' }}>
+                No meals logged today. Head to Meal Suggestions to log your first meal.
+              </p>
+            ) : (
+              MEAL_ORDER.map(type => {
+                const meals = groups.get(type);
+                if (!meals?.length) return null;
+                return (
+                  <div key={type} style={{ marginBottom: 20 }}>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 10 }}>
+                      <span style={{ fontSize: 16 }}>{MEAL_ICONS[type]}</span>
+                      <span style={{ fontSize: 12, fontWeight: 700, color: 'var(--txt2)', letterSpacing: '.5px', textTransform: 'uppercase' }}>{type}</span>
+                    </div>
+                    <div style={{ display: 'flex', flexDirection: 'column', gap: 8 }}>
+                      {meals.map(meal => (
+                        <div key={meal.id} style={{ padding: '12px 14px', background: 'var(--surf2)', borderRadius: 'var(--rad)', display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', gap: 12 }}>
+                          <div style={{ minWidth: 0 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 4, flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 13, fontWeight: 600, color: 'var(--txt)', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', maxWidth: 420 }}>{meal.meal_name}</span>
+                              {meal.claude_suggestion && (
+                                <span style={{ fontSize: 9, fontWeight: 700, padding: '1px 6px', background: 'rgba(200,255,0,0.12)', color: 'var(--acc)', borderRadius: 4, letterSpacing: '.5px' }}>AI</span>
+                              )}
+                            </div>
+                            <div style={{ display: 'flex', gap: 10, alignItems: 'center', flexWrap: 'wrap' }}>
+                              <span style={{ fontSize: 11, color: 'var(--txt3)' }}>{formatTime(meal.eaten_at)}</span>
+                              <span style={{ fontSize: 11, color: '#3B82F6', fontWeight: 600 }}>P {Math.round(meal.protein_g)}g</span>
+                              <span style={{ fontSize: 11, color: '#F59E0B', fontWeight: 600 }}>C {Math.round(meal.carbs_g)}g</span>
+                              <span style={{ fontSize: 11, color: '#F97316', fontWeight: 600 }}>F {Math.round(meal.fat_g)}g</span>
+                            </div>
+                          </div>
+                          <div style={{ textAlign: 'right', flexShrink: 0 }}>
+                            <span style={{ fontFamily: 'var(--fd)', fontSize: 22, color: 'var(--acc)' }}>{meal.calories}</span>
+                            <span style={{ fontSize: 11, color: 'var(--txt3)', marginLeft: 2 }}>kcal</span>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
+          </motion.div>
         </div>
-      </motion.div>
+
+        {/* Right rail */}
+        <div className="stackSm">
+          {/* Insights */}
+          <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.1 }}>
+            <h3 className="text-sm font-semibold text-text-primary mb-3">⚡ Insights</h3>
+            {insights.map((ins, i) => <InsightRow key={i} insight={ins} />)}
+          </motion.div>
+
+          {/* Pantry hints */}
+          <motion.div className="card" initial={{ opacity: 0, y: 10 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: 0.2 }}>
+            <h3 className="text-sm font-semibold text-text-primary mb-3">🥦 Pantry Status</h3>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: 10 }}>
+              <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(34,197,94,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>📦</div>
+                <span style={{ fontSize: 13, color: 'var(--txt2)' }}>
+                  <strong style={{ color: 'var(--txt)' }}>{pantryCount}</strong> items available for meal suggestions
+                </span>
+              </div>
+              {expiringCount > 0 && (
+                <>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 10 }}>
+                    <div style={{ width: 32, height: 32, borderRadius: 8, background: 'rgba(245,158,11,0.1)', display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 15 }}>⚠️</div>
+                    <span style={{ fontSize: 13, color: 'var(--txt2)' }}>
+                      <strong style={{ color: '#F59E0B' }}>{expiringCount}</strong> items expiring soon
+                    </span>
+                  </div>
+                  <div style={{ fontSize: 12, color: 'var(--acc)', padding: '9px 13px', background: 'rgba(200,255,0,0.06)', borderRadius: 8, borderLeft: '2px solid var(--acc)' }}>
+                    Use expiring items first in your next meal suggestion.
+                  </div>
+                </>
+              )}
+              {pantryCount === 0 && (
+                <p style={{ fontSize: 13, color: 'var(--txt3)' }}>No pantry items yet. Add items to get meal suggestions.</p>
+              )}
+            </div>
+          </motion.div>
+        </div>
+      </div>
     </>
   );
 }
@@ -656,62 +664,64 @@ export function NutritionPage() {
   if (!profile) return null;
 
   return (
-    <div className="px-4 md:px-6 pt-4 pb-24 md:pb-8 max-w-6xl mx-auto">
-      {/* Header */}
-      <motion.div className="mb-6" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
-        <h2 className="text-xl font-bold font-display text-text-primary">Nutrition</h2>
-        <p className="text-sm text-text-muted mt-0.5">Am I eating right for my goal?</p>
-      </motion.div>
+    <div className="pageWrapper">
+      <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%' }}>
+        {/* Header */}
+        <motion.div className="mb-8" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
+          <h2 className="text-xl font-bold font-display text-text-primary">Nutrition</h2>
+          <p className="text-sm text-text-muted mt-1">Am I eating right for my goal?</p>
+        </motion.div>
 
-      {/* Timeframe tabs */}
-      <motion.div
-        style={{ display: 'flex', gap: 4, marginBottom: 24, background: 'var(--surf)', padding: 4, borderRadius: 'var(--rad)', width: 'fit-content' }}
-        initial={{ opacity: 0 }}
-        animate={{ opacity: 1 }}
-        transition={{ delay: 0.05 }}
-      >
-        {(['today', 'week', 'month'] as Timeframe[]).map(tf => (
-          <button
-            key={tf}
-            onClick={() => setTimeframe(tf)}
-            style={{
-              padding: '7px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
-              fontSize: 13, fontWeight: 600, transition: 'all 0.15s ease',
-              background: timeframe === tf ? 'var(--acc)' : 'transparent',
-              color: timeframe === tf ? '#0A0A0A' : 'var(--txt2)',
-            }}
-          >
-            {tf === 'today' ? 'Today' : tf === 'week' ? 'This Week' : 'This Month'}
-          </button>
-        ))}
-      </motion.div>
+        {/* Timeframe tabs */}
+        <motion.div
+          style={{ display: 'flex', gap: 4, marginBottom: 32, background: 'var(--surf)', padding: 4, borderRadius: 'var(--rad)', width: 'fit-content' }}
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ delay: 0.05 }}
+        >
+          {(['today', 'week', 'month'] as Timeframe[]).map(tf => (
+            <button
+              key={tf}
+              onClick={() => setTimeframe(tf)}
+              style={{
+                padding: '7px 18px', borderRadius: 9, border: 'none', cursor: 'pointer',
+                fontSize: 13, fontWeight: 600, transition: 'all 0.15s ease',
+                background: timeframe === tf ? 'var(--acc)' : 'transparent',
+                color: timeframe === tf ? '#0A0A0A' : 'var(--txt2)',
+              }}
+            >
+              {tf === 'today' ? 'Today' : tf === 'week' ? 'This Week' : 'This Month'}
+            </button>
+          ))}
+        </motion.div>
 
-      {/* Content */}
-      {currentLoading ? (
-        <LoadingSpinner />
-      ) : todayError && timeframe === 'today' ? (
-        <div style={{ textAlign: 'center', padding: '48px 24px' }}>
-          <p style={{ color: '#EF4444', fontSize: 13 }}>{todayError}</p>
-          <button
-            onClick={fetchToday}
-            style={{ marginTop: 12, padding: '8px 16px', background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8, color: 'var(--txt)', cursor: 'pointer', fontSize: 13 }}
-          >
-            Retry
-          </button>
-        </div>
-      ) : (
-        <>
-          {timeframe === 'today' && (
-            <TodayView logs={todayLogs} calorieGoal={calorieGoal} macroGoals={macroGoals} pantryCount={pantryCount} expiringCount={expiringCount} />
-          )}
-          {timeframe === 'week' && (
-            <WeekView weekData={weekData} calorieGoal={calorieGoal} macroGoals={macroGoals} />
-          )}
-          {timeframe === 'month' && (
-            <MonthView monthData={monthData} calorieGoal={calorieGoal} macroGoals={macroGoals} />
-          )}
-        </>
-      )}
+        {/* Content */}
+        {currentLoading ? (
+          <LoadingSpinner />
+        ) : todayError && timeframe === 'today' ? (
+          <div style={{ textAlign: 'center', padding: '48px 24px' }}>
+            <p style={{ color: '#EF4444', fontSize: 13 }}>{todayError}</p>
+            <button
+              onClick={fetchToday}
+              style={{ marginTop: 12, padding: '8px 16px', background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8, color: 'var(--txt)', cursor: 'pointer', fontSize: 13 }}
+            >
+              Retry
+            </button>
+          </div>
+        ) : (
+          <>
+            {timeframe === 'today' && (
+              <TodayView logs={todayLogs} calorieGoal={calorieGoal} macroGoals={macroGoals} pantryCount={pantryCount} expiringCount={expiringCount} />
+            )}
+            {timeframe === 'week' && (
+              <WeekView weekData={weekData} calorieGoal={calorieGoal} macroGoals={macroGoals} />
+            )}
+            {timeframe === 'month' && (
+              <MonthView monthData={monthData} calorieGoal={calorieGoal} macroGoals={macroGoals} />
+            )}
+          </>
+        )}
+      </div>
     </div>
   );
 }
