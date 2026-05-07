@@ -233,12 +233,10 @@ export function DashboardPage() {
 
   return (
     <div className="pageWrapper">
-      {/* Header — no Today/Week/Month toggle (not wired up yet) */}
-      <div className="pageHeader">
-        <div>
-          <h1 className="pageTitle">{getGreeting()}, {profile.name?.split(' ')[0] ?? 'there'} 👋</h1>
-          <p className="pageSub">{dateStr} · {profile.fitness_goal ?? 'Bulking'} · {calGoal.toLocaleString()} kcal goal</p>
-        </div>
+      <div className="nutritionPageHero">
+        <p className="nutritionPageEyebrow">Overview · Today</p>
+        <h1 className="nutritionPageTitle">{getGreeting()}, {profile.name?.split(' ')[0] ?? 'there'}</h1>
+        <p className="nutritionPageSubtitle">{dateStr} · {profile.fitness_goal ?? 'Maintaining'} · {calGoal.toLocaleString()} kcal goal</p>
       </div>
 
       {/* KPI row */}

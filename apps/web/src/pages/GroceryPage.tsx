@@ -58,20 +58,22 @@ export function GroceryPage() {
   const pct = items.length ? Math.round((checked.length / items.length) * 100) : 0;
 
   return (
-    <div>
-      {/* Header */}
-      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: 4 }}>
-        <div>
-          <h1 className="pageTitle" style={{ margin: 0 }}>Grocery List</h1>
-          <p className="pageSubtitle" style={{ marginTop: 4, marginBottom: 0 }}>
-            {unchecked.length} item{unchecked.length !== 1 ? 's' : ''} to buy
-          </p>
+    <div className="pageWrapper">
+      <div className="nutritionPageHero">
+        <p className="nutritionPageEyebrow">Shop · Plan · Restock</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h1 className="nutritionPageTitle">Grocery List</h1>
+            <p className="nutritionPageSubtitle">
+              {unchecked.length} item{unchecked.length !== 1 ? 's' : ''} to buy
+            </p>
+          </div>
+          {checked.length > 0 && (
+            <button onClick={clearCompleted} className="btn" style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.20)', fontSize: 13, flexShrink: 0, marginBottom: 4 }}>
+              Clear {checked.length} done
+            </button>
+          )}
         </div>
-        {checked.length > 0 && (
-          <button onClick={clearCompleted} className="btn" style={{ color: 'var(--danger)', borderColor: 'rgba(239,68,68,0.20)', fontSize: 13 }}>
-            Clear {checked.length} done
-          </button>
-        )}
       </div>
 
       {/* Progress */}

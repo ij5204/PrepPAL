@@ -821,20 +821,36 @@ function MonthView({ monthData, calorieGoal, macroGoals }: { monthData: DayData[
   );
 }
 
+// ── Module-level cache ─────────────────────────────────────────────────────────
+// Survives React Router navigation (unmount/remount) so navigating back to
+// Nutrition shows data immediately while a background refresh runs silently.
+
+interface NutritionCache {
+  todayLogs: MealLog[];
+  weekData: DayData[];
+  monthData: DayData[];
+  pantryItems: PantryHint[];
+  pantryCount: number;
+  expiringCount: number;
+}
+let _nutritionCache: NutritionCache | null = null;
+
 // ── Main Page ──────────────────────────────────────────────────────────────────
 
 export function NutritionPage() {
   const { profile } = useAuthStore();
   const [timeframe, setTimeframe] = useState<Timeframe>('today');
 
-  const [todayLogs,     setTodayLogs]     = useState<MealLog[]>([]);
-  const [weekData,      setWeekData]      = useState<DayData[]>([]);
-  const [monthData,     setMonthData]     = useState<DayData[]>([]);
-  const [pantryItems,   setPantryItems]   = useState<PantryHint[]>([]);
-  const [pantryCount,   setPantryCount]   = useState(0);
-  const [expiringCount, setExpiringCount] = useState(0);
+  const [todayLogs,     setTodayLogs]     = useState<MealLog[]>(_nutritionCache?.todayLogs ?? []);
+  const [weekData,      setWeekData]      = useState<DayData[]>(_nutritionCache?.weekData ?? []);
+  const [monthData,     setMonthData]     = useState<DayData[]>(_nutritionCache?.monthData ?? []);
+  const [pantryItems,   setPantryItems]   = useState<PantryHint[]>(_nutritionCache?.pantryItems ?? []);
+  const [pantryCount,   setPantryCount]   = useState(_nutritionCache?.pantryCount ?? 0);
+  const [expiringCount, setExpiringCount] = useState(_nutritionCache?.expiringCount ?? 0);
 
-  const [todayLoading, setTodayLoading] = useState(true);
+  // Only show the full-page spinner on first-ever load. On navigation return,
+  // cached data renders immediately and fetches happen silently in background.
+  const [todayLoading, setTodayLoading] = useState(!_nutritionCache);
   const [weekLoading,  setWeekLoading]  = useState(false);
   const [monthLoading, setMonthLoading] = useState(false);
   const [todayError,   setTodayError]   = useState<string | null>(null);
@@ -843,70 +859,82 @@ export function NutritionPage() {
   const fetchingWeek   = useRef(false);
   const fetchingMonth  = useRef(false);
   const fetchingPantry = useRef(false);
+  const isMountedRef   = useRef(true);
+
+  useEffect(() => {
+    isMountedRef.current = true;
+    return () => { isMountedRef.current = false; };
+  }, []);
 
   const macroGoals  = profile ? calcMacroGoals(profile) : { protein: 130, carbs: 200, fat: 60 };
   const calorieGoal = profile?.daily_calorie_goal ?? 2000;
   const fitnessGoal = profile?.fitness_goal ?? 'Maintaining';
 
-  const fetchToday = useCallback(async () => {
+  const fetchToday = useCallback(async (background = false) => {
     if (fetchingToday.current) return;
     fetchingToday.current = true;
-    setTodayLoading(true);
-    setTodayError(null);
+    // Only show the full-page spinner when there is no cached data at all.
+    if (!background && !_nutritionCache) { setTodayLoading(true); setTodayError(null); }
     try {
-      const { data: { session }, error: sErr } = await supabase.auth.getSession();
-      if (sErr || !session) throw new Error(sErr?.message ?? 'Your session expired. Please sign in again.');
+      const { session } = useAuthStore.getState();
+      if (!session) throw new Error('Your session expired. Please sign in again.');
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const { data, error } = await supabase.from('meal_logs').select('*').gte('eaten_at', today.toISOString()).order('eaten_at', { ascending: false });
       if (error) throw error;
-      setTodayLogs((data as MealLog[]) ?? []);
+      const logs = (data as MealLog[]) ?? [];
+      if (!isMountedRef.current) return;
+      setTodayLogs(logs);
+      _nutritionCache = { ...(_nutritionCache ?? { weekData: [], monthData: [], pantryItems: [], pantryCount: 0, expiringCount: 0 }), todayLogs: logs };
     } catch (e: unknown) {
-      setTodayError((e as Error).message ?? "Failed to load today's meals");
+      if (!isMountedRef.current) return;
+      if (!_nutritionCache) setTodayError((e as Error).message ?? "Failed to load today's meals");
     } finally {
       fetchingToday.current = false;
-      setTodayLoading(false);
+      if (isMountedRef.current) setTodayLoading(false);
     }
   }, []);
 
-  const fetchWeek = useCallback(async () => {
+  const fetchWeek = useCallback(async (background = false) => {
     if (fetchingWeek.current) return;
     fetchingWeek.current = true;
-    setWeekLoading(true);
+    if (!background) setWeekLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { session } = useAuthStore.getState();
       if (!session) return;
-      const user = session.user;
       const today = new Date(); today.setHours(0, 0, 0, 0);
       const start = new Date(today); start.setDate(start.getDate() - 6);
-      const { data } = await supabase.from('meal_logs').select('eaten_at, calories, protein_g, carbs_g, fat_g').eq('user_id', user.id).gte('eaten_at', start.toISOString()).order('eaten_at');
+      const { data } = await supabase.from('meal_logs').select('eaten_at, calories, protein_g, carbs_g, fat_g').gte('eaten_at', start.toISOString()).order('eaten_at');
       const days = new Map<string, DayData>();
       for (let i = 0; i < 7; i++) {
         const d = new Date(start); d.setDate(start.getDate() + i);
         const key = formatDayKey(d);
         days.set(key, { date: key, day: d.toLocaleDateString(undefined, { weekday: 'short' }), calories: 0, protein: 0, carbs: 0, fat: 0 });
       }
-      setWeekData(aggregateByDay(data ?? [], days));
+      const result = aggregateByDay(data ?? [], days);
+      setWeekData(result);
+      _nutritionCache = { ...(_nutritionCache ?? { todayLogs: [], monthData: [], pantryItems: [], pantryCount: 0, expiringCount: 0 }), weekData: result };
     } finally { fetchingWeek.current = false; setWeekLoading(false); }
   }, []);
 
-  const fetchMonth = useCallback(async () => {
+  const fetchMonth = useCallback(async (background = false) => {
     if (fetchingMonth.current) return;
     fetchingMonth.current = true;
-    setMonthLoading(true);
+    if (!background) setMonthLoading(true);
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { session } = useAuthStore.getState();
       if (!session) return;
-      const user = session.user;
       const now = new Date();
       const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-      const { data } = await supabase.from('meal_logs').select('eaten_at, calories, protein_g, carbs_g, fat_g').eq('user_id', user.id).gte('eaten_at', startOfMonth.toISOString()).order('eaten_at');
+      const { data } = await supabase.from('meal_logs').select('eaten_at, calories, protein_g, carbs_g, fat_g').gte('eaten_at', startOfMonth.toISOString()).order('eaten_at');
       const days = new Map<string, DayData>();
       for (let i = 1; i <= now.getDate(); i++) {
         const d = new Date(now.getFullYear(), now.getMonth(), i);
         const key = formatDayKey(d);
         days.set(key, { date: key, day: String(i), calories: 0, protein: 0, carbs: 0, fat: 0 });
       }
-      setMonthData(aggregateByDay(data ?? [], days));
+      const result = aggregateByDay(data ?? [], days);
+      setMonthData(result);
+      _nutritionCache = { ...(_nutritionCache ?? { todayLogs: [], weekData: [], pantryItems: [], pantryCount: 0, expiringCount: 0 }), monthData: result };
     } finally { fetchingMonth.current = false; setMonthLoading(false); }
   }, []);
 
@@ -914,24 +942,28 @@ export function NutritionPage() {
     if (fetchingPantry.current) return;
     fetchingPantry.current = true;
     try {
-      const { data: { session } } = await supabase.auth.getSession();
+      const { session } = useAuthStore.getState();
       if (!session) return;
-      const { data } = await supabase.from('pantry_items').select('name, category, expiry_date').eq('user_id', session.user.id);
+      const { data } = await supabase.from('pantry_items').select('name, category, expiry_date');
       if (!data) return;
-      setPantryItems(data as PantryHint[]);
-      setPantryCount(data.length);
-      setExpiringCount(data.filter(item => { const { status } = getExpiryStatus(item.expiry_date); return status === 'warning' || status === 'danger'; }).length);
+      const items = data as PantryHint[];
+      const expiring = items.filter(item => { const { status } = getExpiryStatus(item.expiry_date); return status === 'warning' || status === 'danger'; }).length;
+      setPantryItems(items);
+      setPantryCount(items.length);
+      setExpiringCount(expiring);
+      _nutritionCache = { ...(_nutritionCache ?? { todayLogs: [], weekData: [], monthData: [] }), pantryItems: items, pantryCount: items.length, expiringCount: expiring };
     } finally { fetchingPantry.current = false; }
   }, []);
 
   useEffect(() => {
-    fetchToday(); fetchWeek(); fetchMonth(); fetchPantry();
+    const bg = !!_nutritionCache;
+    fetchToday(bg); fetchWeek(bg); fetchMonth(bg); fetchPantry();
   }, []);
 
   useEffect(() => {
-    if (timeframe === 'today') fetchToday();
-    if (timeframe === 'week')  fetchWeek();
-    if (timeframe === 'month') fetchMonth();
+    if (timeframe === 'today') fetchToday(true);
+    if (timeframe === 'week')  fetchWeek(true);
+    if (timeframe === 'month') fetchMonth(true);
   }, [timeframe]);
 
   // Re-fetch when tab becomes visible again
@@ -941,9 +973,9 @@ export function NutritionPage() {
       if (document.visibilityState !== 'visible') return;
       if (timer) clearTimeout(timer);
       timer = setTimeout(() => {
-        fetchToday(); fetchPantry();
-        if (timeframe === 'week')  fetchWeek();
-        if (timeframe === 'month') fetchMonth();
+        fetchToday(true); fetchPantry();
+        if (timeframe === 'week')  fetchWeek(true);
+        if (timeframe === 'month') fetchMonth(true);
       }, 1200);
     };
     document.addEventListener('visibilitychange', onVisible);
@@ -955,8 +987,7 @@ export function NutritionPage() {
   if (!profile) return null;
 
   return (
-    <div className="pageWrapper">
-      <div style={{ maxWidth: 1400, margin: '0 auto', width: '100%', paddingBottom: 24 }}>
+    <div className="pageWrapper" style={{ paddingBottom: 40 }}>
         {/* Header — poster typography so this route reads as “Nutrition”, not a generic screen */}
         <motion.div className="nutritionPageHero" initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}>
           <p className="nutritionPageEyebrow">Fuel · macros · habits</p>
@@ -1001,7 +1032,7 @@ export function NutritionPage() {
           <div style={{ textAlign: 'center', padding: '48px 24px' }}>
             <p style={{ color: '#EF4444', fontSize: 13, marginBottom: 12 }}>{todayError}</p>
             <button
-              onClick={fetchToday}
+              onClick={() => fetchToday(false)}
               style={{ padding: '8px 16px', background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8, color: 'var(--txt)', cursor: 'pointer', fontSize: 13 }}
             >
               Retry
@@ -1028,7 +1059,6 @@ export function NutritionPage() {
             )}
           </>
         )}
-      </div>
     </div>
   );
 }

@@ -134,13 +134,11 @@ export function MealsPage() {
   };
 
   return (
-    <div style={{ paddingBottom: 60 }}>
-      {/* Header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 className="pageTitle" style={{ margin: 0 }}>Meal Ideas</h1>
-        <p className="pageSubtitle" style={{ marginTop: 4, marginBottom: 0 }}>
-          Configure your meal and get personalized AI recipes.
-        </p>
+    <div className="pageWrapper" style={{ paddingBottom: 60 }}>
+      <div className="nutritionPageHero">
+        <p className="nutritionPageEyebrow">AI · Recipes · Personalised</p>
+        <h1 className="nutritionPageTitle">Meal Ideas</h1>
+        <p className="nutritionPageSubtitle">Configure your meal and get personalised AI recipes.</p>
       </div>
 
       {/* Configuration Form */}

@@ -560,27 +560,30 @@ export function PantryPage() {
   return (
     <div className="pageWrapper">
       {/* Header */}
-      <div className="pageHeader">
-        <div>
-          <h1 className="pageTitle">Pantry</h1>
-          <p className="pageSub">
-            {loading ? 'Loading…' : `${items.length} items · ${items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon`}
-          </p>
-        </div>
-        <div style={{ display: 'flex', gap: 10, alignItems: 'center' }}>
-          <div className="filterBar">
-            {filterTabs.map(({ key, label }) => (
-              <button
-                type="button" key={key}
-                className={`fchip${activeCategory === key ? ' active' : ''}`}
-                onClick={() => setActiveCategory(key)}
-              >
-                {label}
-              </button>
-            ))}
+      <div className="nutritionPageHero">
+        <p className="nutritionPageEyebrow">Track · Manage · Reduce Waste</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h1 className="nutritionPageTitle">Pantry</h1>
+            <p className="nutritionPageSubtitle">
+              {loading ? 'Loading…' : `${items.length} items · ${items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon`}
+            </p>
           </div>
-          <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="tbBtn">+ Add Item</button>
+          <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="tbBtn" style={{ flexShrink: 0, marginBottom: 4 }}>+ Add Item</button>
         </div>
+      </div>
+
+      {/* Filter tabs */}
+      <div className="filterBar">
+        {filterTabs.map(({ key, label }) => (
+          <button
+            type="button" key={key}
+            className={`fchip${activeCategory === key ? ' active' : ''}`}
+            onClick={() => setActiveCategory(key)}
+          >
+            {label}
+          </button>
+        ))}
       </div>
 
       {/* Search */}

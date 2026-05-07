@@ -117,20 +117,22 @@ export function ProfilePage() {
 
   return (
     <div className="pageWrapper">
-      {/* Header */}
-      <div className="pageHeader">
-        <div>
-          <h1 className="pageTitle">Profile</h1>
-          <p className="pageSub">Manage your personal info, body stats, and nutrition targets</p>
+      <div className="nutritionPageHero">
+        <p className="nutritionPageEyebrow">Goals · Preferences · Account</p>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
+          <div>
+            <h1 className="nutritionPageTitle">Profile</h1>
+            <p className="nutritionPageSubtitle">Manage your personal info, body stats, and nutrition targets.</p>
+          </div>
+          <button
+            onClick={handleSave}
+            disabled={saving}
+            className="btn btnPrimary"
+            style={{ padding: '10px 28px', fontSize: 14, flexShrink: 0, marginBottom: 4 }}
+          >
+            {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
+          </button>
         </div>
-        <button
-          onClick={handleSave}
-          disabled={saving}
-          className="btn btnPrimary"
-          style={{ padding: '10px 28px', fontSize: 14 }}
-        >
-          {saving ? 'Saving…' : saved ? '✓ Saved!' : 'Save Changes'}
-        </button>
       </div>
 
       {saveError && (
