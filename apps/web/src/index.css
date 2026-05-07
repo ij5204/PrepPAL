@@ -13,8 +13,9 @@
   --txt3: #444440;
   --bdr: rgba(255,255,255,0.07);
   --bdr2: rgba(255,255,255,0.13);
+  /* Display / poster: condensed brand & hero titles. UI: Outfit. */
   --fd: 'Bebas Neue', sans-serif;
-  --fb: 'DM Sans', sans-serif;
+  --fb: 'Outfit', system-ui, -apple-system, sans-serif;
   --rad: 12px;
   --rad-lg: 18px;
   --rad-xl: 24px;
@@ -63,10 +64,11 @@ html, body, #root {
 body {
   background: #050505;
   color: var(--txt);
-  font-family: 'DM Sans', sans-serif;
+  font-family: var(--fb);
   -webkit-font-smoothing: antialiased;
   font-size: 14px;
   line-height: 1.5;
+  font-feature-settings: 'cv02', 'cv08';
 }
 
 /* ── Typography ────────────────────────────────────────────────────────────── */
@@ -336,9 +338,51 @@ input:focus, select:focus, textarea:focus {
 }
 
 .pageSub {
-  font-size: 12px;
+  font-family: var(--fb);
+  font-size: 13px;
+  font-weight: 450;
   color: var(--txt2);
   margin: 3px 0 0;
+  line-height: 1.55;
+}
+
+/* ── Nutrition route hero (stands out vs other screens) ─────────────────────── */
+
+.nutritionPageHero {
+  margin-bottom: 28px;
+  padding-bottom: 22px;
+  border-bottom: 1px solid var(--bdr2);
+}
+
+.nutritionPageEyebrow {
+  font-family: var(--fb);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.26em;
+  text-transform: uppercase;
+  color: var(--acc);
+  margin: 0 0 10px;
+}
+
+.nutritionPageTitle {
+  font-family: var(--fd);
+  font-size: clamp(2.85rem, 6vw, 4.25rem);
+  line-height: 0.92;
+  letter-spacing: 0.1em;
+  color: var(--txt);
+  margin: 0 0 14px;
+  text-transform: uppercase;
+  text-shadow: 0 0 48px rgba(200, 255, 0, 0.12);
+}
+
+.nutritionPageSubtitle {
+  font-family: var(--fb);
+  font-size: 15px;
+  font-weight: 450;
+  line-height: 1.58;
+  color: var(--txt2);
+  max-width: 40rem;
+  margin: 0;
 }
 
 .container {
