@@ -6,7 +6,7 @@
 
 // ── Enums & Unions ────────────────────────────
 
-export type Unit = 'g' | 'kg' | 'ml' | 'l' | 'cups' | 'pieces' | 'tsp' | 'tbsp';
+export type Unit = 'g' | 'kg' | 'oz' | 'lbs' | 'ml' | 'l' | 'cups' | 'pieces' | 'tsp' | 'tbsp';
 
 export type Category = 'produce' | 'dairy' | 'protein' | 'pantry' | 'spice' | 'other';
 

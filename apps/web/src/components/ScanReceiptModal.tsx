@@ -3,7 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import type { PantryItem, Unit, Category } from '@preppal/types';
 
-const UNITS: Unit[] = ['g', 'kg', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
+const UNITS: Unit[] = ['g', 'kg', 'oz', 'lbs', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
 const CATEGORIES: Category[] = ['produce', 'dairy', 'protein', 'pantry', 'spice', 'other'];
 const CATEGORY_ICONS: Record<Category, string> = {
   produce: '🥦', dairy: '🥛', protein: '🥩', pantry: '🫙', spice: '🧂', other: '📦',
@@ -45,6 +45,9 @@ interface ExtractedItem {
   name: string;
   quantity: number;
   unit: Unit;
+  package_size: number | null;
+  package_unit: string | null;
+  display_quantity: string;
   category: Category;
   confidence_score: number;
   original_receipt_text: string;
@@ -122,32 +125,109 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
 
       setStatusMsg('Parsing receipt…');
 
-      const { data, error } = await supabase.functions.invoke('parse-receipt', {
-        headers: { Authorization: `Bearer ${session.access_token}` },
-        body: formData,
-      });
+      // Use native fetch with keepalive:true so the request completes even if
+      // the user switches to another browser tab (avoids browser throttling).
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 120_000); // 2 min max
 
-      if (error) throw error;
+      let data: any;
+      try {
+        const supabaseUrl = import.meta.env.VITE_SUPABASE_URL as string;
+        const res = await fetch(`${supabaseUrl}/functions/v1/parse-receipt`, {
+          method: 'POST',
+          headers: {
+            Authorization: `Bearer ${session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY as string,
+          },
+          body: formData,
+          keepalive: true,
+          signal: controller.signal,
+        });
+        data = await res.json();
+      } finally {
+        clearTimeout(timeout);
+      }
+
+      // Function always returns 200; errors are encoded in { error, detail }
+      if (data?.error) {
+        throw new Error(data.detail ?? data.error);
+      }
 
       if (!data?.items || !Array.isArray(data.items)) {
-        throw new Error('No items found');
+        throw new Error('No items found in response');
       }
 
       const items: ExtractedItem[] = (data.items as any[])
-        .map((item, i) => ({
-          _id: `${i}-${Date.now()}`,
-          name: String(item.name ?? '').trim(),
-          quantity:
-            typeof item.quantity === 'number' && item.quantity > 0 ? item.quantity : 1,
-          unit: UNITS.includes(item.unit) ? (item.unit as Unit) : 'pieces',
-          category: CATEGORIES.includes(item.category)
-            ? (item.category as Category)
-            : 'other',
-          confidence_score:
-            typeof item.confidence_score === 'number' ? item.confidence_score : 0.5,
-          original_receipt_text: String(item.original_receipt_text ?? '').trim(),
-          deleted: false,
-        }))
+        .map((item, i) => {
+          const rawQty =
+            typeof item.quantity === 'number' && item.quantity > 0
+              ? Math.round(item.quantity)
+              : 1;
+          const unit: Unit = UNITS.includes(item.unit) ? (item.unit as Unit) : 'pieces';
+
+          // Safety cap: for packaged goods (pieces) quantity should almost never
+          // exceed 6 on a single grocery trip. If the model returns e.g. 10 or 12
+          // Safety cap: for packaged goods quantity should almost never exceed 6.
+          // Weight/volume units are exempt since quantity = the measured amount.
+          const isWeightUnit = ['g', 'kg', 'oz', 'lbs', 'ml', 'l'].includes(unit);
+          const qty = (!isWeightUnit && rawQty > 6) ? 1 : rawQty;
+
+          const pkgSize =
+            typeof item.package_size === 'number' && item.package_size > 0
+              ? item.package_size
+              : null;
+          const pkgUnit =
+            typeof item.package_unit === 'string' && item.package_unit.trim()
+              ? item.package_unit.trim()
+              : null;
+
+          // If a suspicious qty was capped and there's no package_size yet,
+          // promote the original rawQty into package_size so we don't lose the info.
+          const finalPkgSize =
+            pkgSize === null && rawQty !== qty ? rawQty : pkgSize;
+          const finalPkgUnit =
+            pkgSize === null && rawQty !== qty ? pkgUnit ?? 'ct' : pkgUnit;
+
+          // Build human-readable display_quantity.
+          // Rules:
+          //   - ct / count → "X counts"  (only when package has a ct)
+          //   - oz, lbs, g, kg, ml, l, fl oz → kept as-is after the number
+          //   - no package info → just show qty number
+          const buildDisplay = (q: number, pSize: number | null, pUnit: string | null): string => {
+            if (!pSize) return `${q}`;
+            const pu = (pUnit ?? '').toLowerCase().trim();
+            const sizeLabel = (pu === 'ct' || pu === 'count' || pu === 'counts')
+              ? `${pSize} counts`
+              : `${pSize} ${pUnit ?? ''}`.trim();
+            return `${q} pkg, ${sizeLabel}`;
+          };
+
+          // Always regenerate if qty was capped OR model left display_quantity empty
+          const modelDisplay =
+            typeof item.display_quantity === 'string' && item.display_quantity.trim()
+              ? item.display_quantity.trim()
+              : '';
+          const displayQty = (!modelDisplay || rawQty !== qty)
+            ? buildDisplay(qty, finalPkgSize, finalPkgUnit)
+            : modelDisplay;
+
+          return {
+            _id: `${i}-${Date.now()}`,
+            name: String(item.name ?? '').trim(),
+            quantity: qty,
+            unit,
+            package_size: finalPkgSize,
+            package_unit: finalPkgUnit,
+            display_quantity: displayQty,
+            category: CATEGORIES.includes(item.category)
+              ? (item.category as Category)
+              : 'other',
+            confidence_score:
+              typeof item.confidence_score === 'number' ? item.confidence_score : 0.5,
+            original_receipt_text: String(item.original_receipt_text ?? '').trim(),
+            deleted: false,
+          };
+        })
         .filter((i) => i.name.length > 0);
 
       if (items.length === 0) {
@@ -160,10 +240,12 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
 
       setReviewItems(items);
       setPhase('review');
-    } catch (err) {
+    } catch (err: any) {
       console.error('[ScanReceipt] processImage error:', err);
       setErrorMsg(
-        "We couldn't read this receipt clearly. Try another photo or add items manually."
+        err?.message
+          ? `Error: ${err.message}`
+          : "We couldn't read this receipt clearly. Try another photo or add items manually."
       );
       setPhase('error');
     }
@@ -428,11 +510,11 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
                       <input
                         style={fieldInp}
                         type="number"
-                        min="0.01"
-                        step="any"
+                        min="1"
+                        step="1"
                         value={item.quantity}
                         onChange={(e) =>
-                          updateItem(item._id, 'quantity', Number(e.target.value) || 1)
+                          updateItem(item._id, 'quantity', Math.max(1, Math.round(Number(e.target.value))) || 1)
                         }
                       />
                     </div>
@@ -450,6 +532,30 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
                         ))}
                       </select>
                     </div>
+                  </div>
+
+                  {/* Display quantity badge */}
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                    <span
+                      style={{
+                        display: 'inline-block',
+                        fontSize: 11,
+                        fontWeight: 600,
+                        color: 'var(--acc)',
+                        background: 'rgba(200,255,0,0.10)',
+                        border: '1px solid rgba(200,255,0,0.25)',
+                        borderRadius: 6,
+                        padding: '2px 8px',
+                        letterSpacing: '0.3px',
+                      }}
+                    >
+                      {item.display_quantity}
+                    </span>
+                    {item.package_size && (
+                      <span style={{ fontSize: 10, color: 'var(--txt3)' }}>
+                        package: {item.package_size} {item.package_unit}
+                      </span>
+                    )}
                   </div>
 
                   <div>
@@ -579,7 +685,7 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
               </div>
               <div style={{ fontSize: 11, color: 'var(--txt2)', marginTop: 3 }}>
                 Currently {dup.existing.quantity} {dup.existing.unit} · Adding{' '}
-                {dup.item.quantity} {dup.item.unit}
+                <strong style={{ color: 'var(--acc)' }}>{dup.item.display_quantity}</strong>
               </div>
             </div>
 

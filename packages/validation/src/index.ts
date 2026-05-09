@@ -3,7 +3,7 @@ import { z } from 'zod';
 // ── Enums ─────────────────────────────────────
 
 export const UnitSchema = z.enum([
-  'g', 'kg', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp',
+  'g', 'kg', 'oz', 'lbs', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp',
 ]);
 
 export const CategorySchema = z.enum([
