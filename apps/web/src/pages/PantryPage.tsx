@@ -3,6 +3,7 @@ import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { getExpiryStatus } from '@preppal/utils';
 import type { PantryItem, Unit, Category } from '@preppal/types';
+import { ScanReceiptModal } from '../components/ScanReceiptModal';
 
 // Module-level cache — survives React Router navigation (component unmount/remount).
 // When the user navigates away and back, the component re-initialises from this
@@ -249,6 +250,7 @@ export function PantryPage() {
   const [modalItem, setModalItem] = useState<PantryItem | null>(null);
   const [modalPreset, setModalPreset] = useState<Partial<FormState> | null>(null);
   const [modalOpen, setModalOpen] = useState(false);
+  const [scanModalOpen, setScanModalOpen] = useState(false);
   const [deleteTarget, setDeleteTarget] = useState<PantryItem | null>(null);
   const [deleting, setDeleting] = useState(false);
 
@@ -262,7 +264,7 @@ export function PantryPage() {
     return () => { isMountedRef.current = false; };
   }, []);
 
-  useEffect(() => { modalOpenRef.current = modalOpen; }, [modalOpen]);
+  useEffect(() => { modalOpenRef.current = modalOpen || scanModalOpen; }, [modalOpen, scanModalOpen]);
 
   const fetchItems = useCallback(async (isBackground = false) => {
     if (isFetchingRef.current) {
@@ -569,7 +571,12 @@ export function PantryPage() {
               {loading ? 'Loading…' : `${items.length} items · ${items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon`}
             </p>
           </div>
-          <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="tbBtn" style={{ flexShrink: 0, marginBottom: 4 }}>+ Add Item</button>
+          <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginBottom: 4 }}>
+            <button onClick={() => setScanModalOpen(true)} className="btn" style={{ fontSize: 13 }}>
+              🧾 Scan Receipt
+            </button>
+            <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="tbBtn">+ Add Item</button>
+          </div>
         </div>
       </div>
 
@@ -651,6 +658,14 @@ export function PantryPage() {
           item={modalItem}
           preset={modalItem ? null : modalPreset}
           onClose={() => { setModalOpen(false); setModalPreset(null); }}
+          onSaved={() => fetchItems(true)}
+        />
+      )}
+
+      {scanModalOpen && (
+        <ScanReceiptModal
+          existingItems={items}
+          onClose={() => setScanModalOpen(false)}
           onSaved={() => fetchItems(true)}
         />
       )}
