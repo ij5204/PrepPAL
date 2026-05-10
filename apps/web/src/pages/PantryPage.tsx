@@ -25,8 +25,12 @@ const CATEGORY_ICONS: Record<Category, string> = {
 
 interface FormState {
   name: string; quantity: string; unit: Unit; expiry_date: string; category: Category; notes: string;
+  package_size: string; package_unit: string;
 }
-const EMPTY_FORM: FormState = { name: '', quantity: '', unit: 'pieces', expiry_date: '', category: 'other', notes: '' };
+const EMPTY_FORM: FormState = {
+  name: '', quantity: '', unit: 'pieces', expiry_date: '', category: 'other', notes: '',
+  package_size: '', package_unit: '',
+};
 
 const inputStyle: React.CSSProperties = {
   width: '100%',
@@ -60,7 +64,7 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
   const isEdit = !!item;
   const [form, setForm] = useState<FormState>(
     item
-      ? { name: item.name, quantity: String(item.quantity), unit: item.unit, expiry_date: item.expiry_date ?? '', category: item.category, notes: item.notes ?? '' }
+      ? { name: item.name, quantity: String(item.quantity), unit: item.unit, expiry_date: item.expiry_date ?? '', category: item.category, notes: item.notes ?? '', package_size: item.package_size != null ? String(item.package_size) : '', package_unit: item.package_unit ?? '' }
       : EMPTY_FORM
   );
   const [saving, setSaving] = useState(false);
@@ -74,7 +78,7 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
     isSavingRef.current = false;
     setError('');
     if (item) {
-      setForm({ name: item.name, quantity: String(item.quantity), unit: item.unit, expiry_date: item.expiry_date ?? '', category: item.category, notes: item.notes ?? '' });
+      setForm({ name: item.name, quantity: String(item.quantity), unit: item.unit, expiry_date: item.expiry_date ?? '', category: item.category, notes: item.notes ?? '', package_size: item.package_size != null ? String(item.package_size) : '', package_unit: item.package_unit ?? '' });
       return;
     }
     if (preset) { setForm({ ...EMPTY_FORM, ...preset }); return; }
@@ -106,6 +110,7 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
     setSaving(true);
 
     try {
+      const pkgSize = form.package_size !== '' ? Number(form.package_size) : null;
       const payload = {
         name: form.name.trim().replace(/\b\w/g, c => c.toUpperCase()),
         quantity: qty,
@@ -113,6 +118,8 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
         expiry_date: form.expiry_date || null,
         category: form.category as Category,
         notes: form.notes.trim() || null,
+        package_size: pkgSize != null && !isNaN(pkgSize) ? pkgSize : null,
+        package_unit: form.package_unit.trim() || null,
       };
       console.log('[Pantry] SAVE payload:', payload);
 
@@ -186,6 +193,17 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
             <div>
               <label style={labelStyle}>Expiry Date</label>
               <input style={inputStyle} type="date" value={form.expiry_date} onChange={set('expiry_date')} />
+            </div>
+          </div>
+
+          <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 14 }}>
+            <div>
+              <label style={labelStyle}>Package Size</label>
+              <input style={inputStyle} type="number" min="0" step="any" placeholder="e.g. 18.5" value={form.package_size} onChange={set('package_size')} />
+            </div>
+            <div>
+              <label style={labelStyle}>Package Unit</label>
+              <input style={inputStyle} placeholder="oz, fl oz, gal, lb…" value={form.package_unit} onChange={set('package_unit')} />
             </div>
           </div>
 
@@ -528,18 +546,21 @@ export function PantryPage() {
       <table className="ptable">
         <thead>
           <tr>
-            <th>Item</th><th>Category</th><th>Quantity</th><th>Unit</th><th>Expiry</th><th>Status</th><th>Action</th>
+            <th>Item</th><th>Category</th><th>Amount</th><th>Package Size</th><th>Expiry</th><th>Status</th><th>Action</th>
           </tr>
         </thead>
         <tbody>
           {filtered.map(item => {
             const pill = getExpiryPill(item);
+            const pkgDisplay = item.package_size != null
+              ? `${item.package_size}${item.package_unit ? ' ' + item.package_unit : ''}`
+              : '—';
             return (
               <tr key={item.id}>
                 <td style={{ fontWeight: 500 }}>{CATEGORY_ICONS[item.category]} {item.name}</td>
                 <td><span className={`catBadge ${getCatClass(item.category)}`}>{item.category}</span></td>
-                <td><input className="qtyInput" type="number" defaultValue={item.quantity} /></td>
-                <td style={{ color: 'var(--txt2)' }}>{item.unit}</td>
+                <td style={{ color: 'var(--txt2)' }}>{item.quantity} {item.unit}</td>
+                <td style={{ color: pkgDisplay === '—' ? 'var(--txt3)' : 'var(--txt)', fontWeight: pkgDisplay !== '—' ? 500 : 400 }}>{pkgDisplay}</td>
                 <td style={{ color: pill.cls === 'pillR' ? '#FF6040' : 'var(--txt2)' }}>{item.expiry_date ?? '—'}</td>
                 <td>
                   {pill.label !== '—'

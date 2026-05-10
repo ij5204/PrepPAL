@@ -68,13 +68,15 @@ export interface PantryItem {
   id: string;
   user_id: string;
   name: string;
-  quantity: number;
-  unit: Unit;
+  quantity: number;       // how many packages/units purchased
+  unit: Unit;             // container count unit (pieces, etc.)
   expiry_date: string | null; // ISO date string
   category: Category;
   barcode: string | null;
   open_food_facts_id: string | null;
   notes: string | null;
+  package_size: number | null;  // size of each individual package (e.g. 18.5)
+  package_unit: string | null;  // unit for that size as free text (e.g. "oz", "fl oz", "gal")
   created_at: string;
   updated_at: string;
 }

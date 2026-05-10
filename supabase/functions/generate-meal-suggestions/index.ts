@@ -124,7 +124,12 @@ serve(async (req: Request) => {
       a.name.localeCompare(b.name)
     );
     const pantrySerialized = sortedPantry
-      .map((i) => `${i.name}: ${i.quantity} ${i.unit}`)
+      .map((i) => {
+        const base = `${i.name}: ${i.quantity} ${i.unit}`;
+        return i.package_size != null
+          ? `${base} (${i.package_size}${i.package_unit ? ' ' + i.package_unit : ''} each)`
+          : base;
+      })
       .join('\n');
     const pantryString =
       `${pantrySerialized}\n|PREFERENCES|` +
@@ -250,7 +255,12 @@ async function callClaude(
 ): Promise<MealSuggestion[]> {
   const ingredientList = pantryItems
     .sort((a, b) => a.name.localeCompare(b.name))
-    .map((i) => `${i.name}: ${i.quantity} ${i.unit}`)
+    .map((i) => {
+      const base = `${i.name}: ${i.quantity} ${i.unit}`;
+      return i.package_size != null
+        ? `${base} (${i.package_size}${i.package_unit ? ' ' + i.package_unit : ''} per package)`
+        : base;
+    })
     .join('\n');
 
   const systemPrompt =

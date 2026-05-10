@@ -309,62 +309,108 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
       return;
     }
 
+    // Safe unit values that the DB CHECK constraint accepts.
+    const VALID_DB_UNITS: Unit[] = ['g', 'kg', 'oz', 'lbs', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
+    const safeUnit = (u: Unit): Unit => (VALID_DB_UNITS.includes(u) ? u : 'pieces');
+
+    const buildRow = (item: ExtractedItem) => ({
+      user_id: session.user.id,
+      name: item.name.trim().replace(/\b\w/g, (c) => c.toUpperCase()),
+      quantity: item.quantity,
+      unit: safeUnit(item.unit),
+      package_size: item.package_size ?? null,
+      package_unit: item.package_unit?.trim() || null,
+      category: item.category,
+      expiry_date: null,
+      notes: null,
+      barcode: null,
+      open_food_facts_id: null,
+    });
+
     let count = 0;
+    const failures: string[] = [];
 
-    try {
-      if (nonDups.length > 0) {
-        const inserts = nonDups.map((item) => ({
-          user_id: session.user.id,
-          name: item.name.trim().replace(/\b\w/g, (c) => c.toUpperCase()),
-          quantity: item.quantity,
-          unit: item.unit,
-          category: item.category,
-          expiry_date: null,
-          notes: null,
-          barcode: null,
-          open_food_facts_id: null,
-        }));
-        const { error } = await supabase.from('pantry_items').insert(inserts);
-        if (error) throw error;
-        count += inserts.length;
+    // Insert each item individually so one bad row doesn't block the rest.
+    for (const item of nonDups) {
+      const row = buildRow(item);
+      console.log('[ScanReceipt] inserting:', row);
+      const { error } = await supabase.from('pantry_items').insert(row);
+      if (error) {
+        console.error('[ScanReceipt] INSERT FAILED for', item.name, {
+          message: error.message,
+          code: (error as any).code,
+          details: (error as any).details,
+          hint: (error as any).hint,
+          row,
+        });
+        failures.push(`${item.name}: ${error.message}`);
+      } else {
+        count++;
       }
+    }
 
-      for (const dup of dups) {
-        if (dup.action === 'skip') continue;
+    for (const dup of dups) {
+      if (dup.action === 'skip') continue;
 
-        if (dup.action === 'update') {
-          const newQty = dup.existing.quantity + dup.item.quantity;
-          const { error } = await supabase
-            .from('pantry_items')
-            .update({ quantity: newQty })
-            .eq('id', dup.existing.id);
-          if (error) throw error;
-          count++;
-        } else if (dup.action === 'add-new') {
-          const { error } = await supabase.from('pantry_items').insert({
-            user_id: session.user.id,
-            name: dup.item.name.trim().replace(/\b\w/g, (c) => c.toUpperCase()),
-            quantity: dup.item.quantity,
-            unit: dup.item.unit,
-            category: dup.item.category,
-            expiry_date: null,
-            notes: null,
-            barcode: null,
-            open_food_facts_id: null,
+      if (dup.action === 'update') {
+        const newQty = dup.existing.quantity + dup.item.quantity;
+        const patch: Record<string, unknown> = { quantity: newQty };
+        if (dup.item.package_size != null) {
+          patch.package_size = dup.item.package_size;
+          patch.package_unit = dup.item.package_unit?.trim() || null;
+        }
+        console.log('[ScanReceipt] updating', dup.existing.id, patch);
+        const { error } = await supabase
+          .from('pantry_items')
+          .update(patch)
+          .eq('id', dup.existing.id);
+        if (error) {
+          console.error('[ScanReceipt] UPDATE FAILED for', dup.existing.name, {
+            message: error.message,
+            code: (error as any).code,
+            details: (error as any).details,
+            hint: (error as any).hint,
           });
-          if (error) throw error;
+          failures.push(`${dup.existing.name} (update): ${error.message}`);
+        } else {
+          count++;
+        }
+      } else if (dup.action === 'add-new') {
+        const row = buildRow(dup.item);
+        console.log('[ScanReceipt] inserting duplicate as new:', row);
+        const { error } = await supabase.from('pantry_items').insert(row);
+        if (error) {
+          console.error('[ScanReceipt] INSERT (dup) FAILED for', dup.item.name, {
+            message: error.message,
+            code: (error as any).code,
+            details: (error as any).details,
+            hint: (error as any).hint,
+            row,
+          });
+          failures.push(`${dup.item.name}: ${error.message}`);
+        } else {
           count++;
         }
       }
-
-      setSavedCount(count);
-      await onSaved();
-      setPhase('success');
-    } catch (err: any) {
-      console.error('[ScanReceipt] saveItems error:', err);
-      setErrorMsg('Failed to save items. Please try again.');
-      setPhase('error');
     }
+
+    if (count === 0 && failures.length > 0) {
+      // Everything failed — show the first error clearly.
+      const detail = failures[0];
+      console.error('[ScanReceipt] All inserts failed. First error:', detail);
+      setErrorMsg(`Save failed: ${detail}`);
+      setPhase('error');
+      return;
+    }
+
+    // Partial success is still a success — items that worked are in pantry.
+    if (failures.length > 0) {
+      console.warn('[ScanReceipt] Partial save:', count, 'ok,', failures.length, 'failed:', failures);
+    }
+
+    setSavedCount(count);
+    await onSaved();
+    setPhase('success');
   };
 
   // ── Phase renders ────────────────────────────────────────────────────────────
@@ -534,8 +580,35 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
                     </div>
                   </div>
 
-                  {/* Display quantity badge */}
-                  <div style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
+                  {/* Package size row */}
+                  <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr auto', gap: 8, alignItems: 'end' }}>
+                    <div>
+                      <label style={fieldLabel}>Pkg Size</label>
+                      <input
+                        style={fieldInp}
+                        type="number"
+                        min="0"
+                        step="any"
+                        placeholder="e.g. 18.5"
+                        value={item.package_size ?? ''}
+                        onChange={(e) => {
+                          const v = e.target.value;
+                          updateItem(item._id, 'package_size', v === '' ? null : Number(v));
+                        }}
+                      />
+                    </div>
+                    <div>
+                      <label style={fieldLabel}>Pkg Unit</label>
+                      <input
+                        style={fieldInp}
+                        placeholder="oz, fl oz, gal…"
+                        value={item.package_unit ?? ''}
+                        onChange={(e) =>
+                          updateItem(item._id, 'package_unit', e.target.value || null)
+                        }
+                      />
+                    </div>
+                    {/* Display badge */}
                     <span
                       style={{
                         display: 'inline-block',
@@ -545,17 +618,13 @@ export function ScanReceiptModal({ onClose, onSaved, existingItems }: Props) {
                         background: 'rgba(200,255,0,0.10)',
                         border: '1px solid rgba(200,255,0,0.25)',
                         borderRadius: 6,
-                        padding: '2px 8px',
-                        letterSpacing: '0.3px',
+                        padding: '4px 8px',
+                        whiteSpace: 'nowrap',
+                        marginBottom: 1,
                       }}
                     >
-                      {item.display_quantity}
+                      {item.display_quantity || `${item.quantity} pcs`}
                     </span>
-                    {item.package_size && (
-                      <span style={{ fontSize: 10, color: 'var(--txt3)' }}>
-                        package: {item.package_size} {item.package_unit}
-                      </span>
-                    )}
                   </div>
 
                   <div>
