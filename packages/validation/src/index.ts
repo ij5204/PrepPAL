@@ -2,8 +2,22 @@ import { z } from 'zod';
 
 // ── Enums ─────────────────────────────────────
 
+// Keep in sync with `Unit` in @preppal/types (single source of truth).
 export const UnitSchema = z.enum([
-  'g', 'kg', 'oz', 'lbs', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp',
+  // Weight — metric
+  'g', 'kg',
+  // Weight — imperial
+  'oz', 'lbs',
+  // Volume — metric
+  'ml', 'l',
+  // Volume — imperial
+  'fl oz', 'pt', 'qt', 'gal',
+  // Cooking measures
+  'tsp', 'tbsp', 'cups',
+  // Count
+  'pieces', 'dozen', 'bunch', 'head', 'clove',
+  // Package / container
+  'can', 'bottle', 'box', 'bag', 'jar', 'pack', 'slice', 'serving',
 ]);
 
 export const CategorySchema = z.enum([
