@@ -9,7 +9,18 @@ import { ScanReceiptModal } from '../components/ScanReceiptModal';
 let _cache: PantryItem[] = [];
 let _cacheReady = false;
 
-const UNITS: Unit[] = ['g', 'kg', 'ml', 'l', 'cups', 'pieces', 'tsp', 'tbsp'];
+const UNITS: Unit[] = [
+  // Weight
+  'g', 'kg', 'oz', 'lbs',
+  // Volume
+  'ml', 'l', 'fl oz', 'pt', 'qt', 'gal',
+  // Cooking
+  'tsp', 'tbsp', 'cups',
+  // Count
+  'pieces', 'dozen', 'bunch', 'head', 'clove',
+  // Package
+  'can', 'bottle', 'box', 'bag', 'jar', 'pack', 'slice', 'serving',
+];
 const CATEGORIES: Category[] = ['produce', 'dairy', 'protein', 'pantry', 'spice', 'other'];
 
 const CATEGORY_ICONS: Record<Category, string> = {
@@ -290,6 +301,40 @@ function getStatusBadge(item: PantryItem): { label: string; dot: string; bg: str
   return { label: 'FRESH', dot: '#22c55e', bg: 'rgba(34,197,94,0.12)', color: '#22c55e', filled: false };
 }
 
+// ── Stepper step size ─────────────────────────────────────────────────────────
+
+function stepFor(unit: Unit): number {
+  switch (unit) {
+    // metric weight
+    case 'g':     return 50;
+    case 'kg':    return 0.5;
+    // imperial weight
+    case 'oz':    return 1;
+    case 'lbs':   return 0.5;
+    // metric volume
+    case 'ml':    return 50;
+    case 'l':     return 0.25;
+    // imperial volume
+    case 'fl oz': return 1;
+    case 'pt':    return 0.5;
+    case 'qt':    return 0.5;
+    case 'gal':   return 0.25;
+    // cooking
+    case 'tsp':   return 0.5;
+    case 'tbsp':  return 0.5;
+    case 'cups':  return 0.25;
+    // everything else is countable → integer steps
+    default:      return 1;
+  }
+}
+
+function fmtQty(qty: number, unit: Unit): string {
+  // Show decimals only for units where fractions are meaningful
+  const decimal = ['kg','lbs','l','pt','qt','gal','tsp','tbsp','cups','fl oz'].includes(unit);
+  const n = decimal ? parseFloat(qty.toFixed(2)) : qty;
+  return `${n} ${unit}`;
+}
+
 // ── Item Card ─────────────────────────────────────────────────────────────────
 
 function ItemCard({ item, onEdit, onDelete, onQtyChange }: {
@@ -301,6 +346,7 @@ function ItemCard({ item, onEdit, onDelete, onQtyChange }: {
   const [menuOpen, setMenuOpen] = useState(false);
   const badge = getStatusBadge(item);
   const isExpired = badge.label === 'EXPIRED';
+  const step = stepFor(item.unit);
 
   const pkgLine = (() => {
     const catLabel = {
@@ -424,17 +470,17 @@ function ItemCard({ item, onEdit, onDelete, onQtyChange }: {
           overflow: 'hidden',
         }}>
           <button
-            onClick={() => onQtyChange(Math.max(0, item.quantity - 1))}
-            style={{ width: 36, height: 36, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--fb)' }}
+            onClick={() => onQtyChange(Math.max(0, parseFloat((item.quantity - step).toFixed(4))))}
+            style={{ width: 32, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--fb)' }}
           >
             −
           </button>
-          <span style={{ minWidth: 28, textAlign: 'center', fontSize: 14, fontWeight: 600, color: 'var(--txt)', userSelect: 'none' }}>
-            {item.quantity}
+          <span style={{ padding: '0 6px', textAlign: 'center', fontSize: 13, fontWeight: 600, color: 'var(--txt)', userSelect: 'none', whiteSpace: 'nowrap' }}>
+            {fmtQty(item.quantity, item.unit)}
           </span>
           <button
-            onClick={() => onQtyChange(item.quantity + 1)}
-            style={{ width: 36, height: 36, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--fb)' }}
+            onClick={() => onQtyChange(parseFloat((item.quantity + step).toFixed(4)))}
+            style={{ width: 32, height: 34, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--fb)' }}
           >
             +
           </button>
