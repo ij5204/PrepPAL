@@ -132,7 +132,7 @@ serve(async (req: Request) => {
       })
       .join('\n');
     const pantryString =
-      `${pantrySerialized}\n|PREFERENCES|` +
+      `v6|realrecipes|${pantrySerialized}\n|PREFERENCES|` +
       `restrictions:${(userPrefs.dietary_restrictions ?? []).sort().join(',')};` +
       `allergies:${(userPrefs.allergies ?? []).map((x: string) => x.toLowerCase()).sort().join(',')};` +
       `dislikes:${(userPrefs.disliked_foods ?? []).map((x: string) => x.toLowerCase()).sort().join(',')};` +
@@ -263,29 +263,58 @@ async function callClaude(
     })
     .join('\n');
 
-  const systemPrompt =
-    "You are an elite culinary AI and nutritionist. Your job is to suggest practical, highly detailed, and realistic meals based ONLY on the exact ingredients provided.\n" +
-    "CRITICAL RULES:\n" +
-    "1. Never assume an ingredient exists if it is not in the list. If you need something, put it in missing_ingredients.\n" +
-    "2. If only a small quantity of an ingredient remains, suggest a meal that uses that smaller amount.\n" +
-    "3. Return exactly 3 meal suggestions. All 3 suggestions MUST be of the requested meal_type.\n" +
-    "4. The user has requested a specific meal_type, servings, and optional preferences. Tailor the recipes to perfectly match these.\n" +
-    "5. Calorie distribution per meal generally follows: Breakfast 20-30%, Lunch 30-35%, Dinner 30-35%, Snack 10-15%. Use the user's daily calorie goal to dictate realistic 'calories_per_serving' and 'total_calories'.\n" +
-    "6. Instructions MUST be highly detailed step-by-step arrays of strings. No vague summaries.\n" +
-    "7. Never suggest a meal containing any item listed in allergies or disliked foods.\n" +
-    "8. Return ONLY a valid JSON array with no preamble and no markdown formatting.";
+  // Meal type specific inspiration list to anchor suggestions to real dishes
+  const mealInspiration: Record<string, string> = {
+    Breakfast: "Classic French Omelette, Shakshuka, Banana Oatmeal, Avocado Toast, French Toast, Scrambled Eggs on Toast, Greek Yogurt Parfait, Pancakes, Eggs Benedict, Breakfast Burrito, Porridge with Berries, Acai Bowl",
+    Lunch: "Caesar Salad, Chicken Caesar Wrap, Tuna Pasta Salad, Greek Salad, Minestrone Soup, BLT Sandwich, Caprese Salad, Lentil Soup, Club Sandwich, Tomato Basil Soup, Nicoise Salad",
+    Dinner: "Spaghetti Carbonara, Chicken Tikka Masala, Shakshuka, Pasta Arrabbiata, Spaghetti Aglio e Olio, Beef Stir-Fry, Mushroom Risotto, Chicken Stir-Fry, Vegetable Curry, Grilled Salmon with Vegetables, Pesto Pasta, Beef Tacos, Pad Thai, Butter Chicken",
+    Snack: "Guacamole with Tortilla Chips, Apple with Peanut Butter, Hummus with Vegetables, Greek Yogurt with Honey, Trail Mix, Caprese Skewers, Cheese and Crackers, Banana with Almond Butter",
+  };
+  const inspiration = mealInspiration[targetMealType] ?? mealInspiration.Dinner;
 
-  const userMessage = `Pantry:\n${ingredientList}\n\nCalorie goal: ${userPrefs.daily_calorie_goal} kcal\nAlready consumed today: ${caloriesLoggedToday} kcal\nRemaining: ${remaining} kcal\nFitness goal: ${userPrefs.fitness_goal}\nDietary restrictions: ${userPrefs.dietary_restrictions?.length ? userPrefs.dietary_restrictions.join(', ') : 'none'}\nPreferred cuisines: ${userPrefs.preferred_cuisines?.length ? userPrefs.preferred_cuisines.join(', ') : 'none'}\nAllergies: ${userPrefs.allergies?.length ? userPrefs.allergies.join(', ') : 'none'}\nDisliked foods: ${userPrefs.disliked_foods?.length ? userPrefs.disliked_foods.join(', ') : 'none'}\n\nTARGET MEAL TYPE: ${targetMealType}\nTARGET SERVINGS: ${targetServings}\nTARGET PREFERENCES: ${targetPreferences.length ? targetPreferences.join(', ') : 'none'}\n\nReturn exactly 3 variations of the requested meal as a JSON array matching this exact schema: [{ "meal_name": string, "meal_type": string, "servings": number, "calories_per_serving": number, "total_calories": number, "protein_g": number, "carbs_g": number, "fat_g": number, "prep_time_minutes": number, "cook_time_minutes": number, "ingredients_used": [{ "name": string, "quantity": number, "unit": string }], "missing_ingredients": [{ "name": string, "quantity": number, "unit": string }], "step_by_step_instructions": string[], "why_this_fits_user": string, "portion_notes": string, "tags": string[] }].`;
+  const systemPrompt =
+    "You are a world-class chef for a meal-planning app. Your ONLY job is to suggest dishes that real people genuinely enjoy eating.\n\n" +
+    "## THE GOLDEN RULE — READ THIS FIRST\n" +
+    "Choose the recipe FIRST based on what tastes amazing and is universally loved. Then check which pantry items the user has. NEVER invent a dish to fit available ingredients — that produces inedible combinations.\n\n" +
+    "WRONG approach: 'User has pasta + eggs → suggest Pasta with Egg Sauce' ❌\n" +
+    "RIGHT approach: 'Great dinner dishes include Carbonara, Shakshuka, Stir-Fry → which of these match the pantry best?' ✓\n\n" +
+    "## RULES\n" +
+    "1. BELOVED REAL DISHES ONLY. Every suggestion must be a dish a home cook would genuinely want to make and eat. If in doubt, ask: 'Would a food blogger feature this?' If no — don't suggest it.\n" +
+    "2. PANTRY = SAVINGS, NOT CONSTRAINTS. The pantry tells you what ingredients are already available, saving shopping cost. Missing items go in missing_ingredients. It is COMPLETELY FINE for a dish to have 4-5 missing ingredients if it's a great dish. A rich Carbonara needing guanciale + parmesan is infinitely better than 'Egg Pasta Scramble'.\n" +
+    "3. BASICS ASSUMED: Water, salt, black pepper always available. Never list as missing.\n" +
+    "4. MACRO ACCURACY: Calculate from actual quantities. Per 100g unless noted: chicken breast=165kcal/31gP/0C/3.6F; egg(each)=70kcal/6gP/5gF; pasta dry=371kcal/13P/74C/1.5F; olive oil 1tbsp=120kcal/14gF; rice dry=365kcal/7P/80C; oats=389kcal/17P/66C/7F; milk 100ml=42kcal/3.4P/5C; butter 10g=72kcal/8F; parmesan 30g=120kcal/11gP/9gF; bacon/pancetta 30g=115kcal/8gP/9gF.\n" +
+    "5. RETURN EXACTLY 4 ITEMS IN THE JSON ARRAY. Count them: [1, 2, 3, 4]. Not 3. Not 2. Exactly 4.\n" +
+    "6. step_by_step_instructions: exactly 6 steps, each a single clear sentence with specific times/temperatures.\n" +
+    "7. why_this_fits_user: ≤8 words. portion_notes: ≤8 words.\n" +
+    "8. tags: up to 3 from: High Protein | Under 20 mins | Vegetarian | One Pan | Italian | Low Carb | Keto | Comfort Food | Quick & Easy | Meal Prep | Mediterranean | Asian.\n" +
+    "9. Output: compact JSON array only. No markdown, no preamble, no trailing text.";
+
+  const userMessage =
+    `Meal type requested: ${targetMealType}\n` +
+    `Servings: ${targetServings} | Preferences: ${targetPreferences.join(', ') || 'none'}\n` +
+    `Calories remaining today: ${remaining} kcal (goal ${userPrefs.daily_calorie_goal}, consumed ${caloriesLoggedToday})\n` +
+    `Fitness goal: ${userPrefs.fitness_goal}\n` +
+    `Dietary restrictions: ${userPrefs.dietary_restrictions?.join(', ') || 'none'}\n` +
+    `Allergies: ${userPrefs.allergies?.join(', ') || 'none'}\n` +
+    `Disliked foods: ${userPrefs.disliked_foods?.join(', ') || 'none'}\n` +
+    `Preferred cuisines: ${userPrefs.preferred_cuisines?.join(', ') || 'any'}\n\n` +
+    `Available pantry items:\n${ingredientList}\n\n` +
+    `INSPIRATION — choose from dishes like these (or equally good alternatives):\n${inspiration}\n\n` +
+    `Task: Pick 4 of the most appealing, real dishes above (or similar quality) that suit this meal type. ` +
+    `For each, identify which pantry items it uses and list everything else as missing_ingredients. ` +
+    `Prioritise dishes that use more pantry items, but NEVER sacrifice recipe quality for pantry coverage.\n\n` +
+    `Return a JSON array with EXACTLY 4 objects:\n` +
+    `[{"meal_name":string,"meal_type":string,"servings":number,"calories_per_serving":number,"total_calories":number,"protein_g":number,"carbs_g":number,"fat_g":number,"prep_time_minutes":number,"cook_time_minutes":number,"ingredients_used":[{"name":string,"quantity":number,"unit":string}],"missing_ingredients":[{"name":string,"quantity":number,"unit":string}],"step_by_step_instructions":[string,string,string,string,string,string],"why_this_fits_user":string,"portion_notes":string,"tags":[string]}]`;
 
   const payload = {
-    model: 'claude-haiku-4-5-20251001',
-    max_tokens: 4096,
+    model: 'claude-sonnet-4-6',
+    max_tokens: 8000,
     system: systemPrompt,
     messages: [{ role: 'user', content: userMessage }],
   };
 
   console.log('[DEBUG] Has API key:', !!CLAUDE_API_KEY);
-  console.log('[DEBUG] Calling Claude with payload:', JSON.stringify(payload));
+  console.log('[DEBUG] Model:', payload.model, '| max_tokens:', payload.max_tokens);
 
   const response = await fetch('https://api.anthropic.com/v1/messages', {
     method: 'POST',
@@ -305,24 +334,32 @@ async function callClaude(
 
   const data = await response.json();
   const rawText = data.content?.[0]?.text ?? '';
-  
-  console.log('[DEBUG] Claude raw response:', rawText);
+  const stopReason = data.stop_reason ?? 'unknown';
+
+  console.log('[DEBUG] stop_reason:', stopReason, '| output length (chars):', rawText.length);
+  if (stopReason === 'max_tokens') {
+    console.error('[DEBUG] TRUNCATED — response hit max_tokens limit. Increase max_tokens or shorten prompt.');
+  }
 
   // Strip any accidental markdown fences
-  const cleaned = rawText.replace(/```json|```/g, '').trim();
-  
+  const cleaned = rawText.replace(/```json\s*/g, '').replace(/```\s*/g, '').trim();
+
   let parsed;
   try {
     parsed = JSON.parse(cleaned);
   } catch (e) {
-    console.error('[DEBUG] JSON PARSE ERROR on text:', cleaned);
+    console.error('[DEBUG] JSON PARSE ERROR. stop_reason:', stopReason, '| raw length:', rawText.length);
+    console.error('[DEBUG] Raw text (last 500 chars):', rawText.slice(-500));
     throw new Error('Claude returned invalid JSON: ' + String(e));
   }
 
-  // Simplified validation to just return any valid JSON array
   if (!Array.isArray(parsed)) {
-    console.error('[DEBUG] Schema validation failed. Parsed data is not an array:', parsed);
     throw new Error('Claude did not return an array');
+  }
+
+  console.log('[DEBUG] Parsed', parsed.length, 'suggestions');
+  if (parsed.length < 4) {
+    console.error('[DEBUG] Only got', parsed.length, 'suggestions — model did not follow instruction to return 4');
   }
 
   return parsed as MealSuggestion[];
