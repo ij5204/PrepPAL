@@ -5,9 +5,7 @@ import { getExpiryStatus } from '@preppal/utils';
 import type { PantryItem, Unit, Category } from '@preppal/types';
 import { ScanReceiptModal } from '../components/ScanReceiptModal';
 
-// Module-level cache — survives React Router navigation (component unmount/remount).
-// When the user navigates away and back, the component re-initialises from this
-// cache so existing data is shown immediately while a background refresh runs.
+// Module-level cache — survives React Router navigation
 let _cache: PantryItem[] = [];
 let _cacheReady = false;
 
@@ -21,6 +19,41 @@ const CATEGORY_ICONS: Record<Category, string> = {
   pantry: '🫙',
   spice: '🧂',
   other: '📦',
+};
+
+const CATEGORY_SVG: Record<Category, React.ReactNode> = {
+  produce: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 22V12M12 12C12 7 7 4 3 6c4-1 9 1 9 6zM12 12c0-5 5-8 9-6-4-1-9 1-9 6z"/>
+    </svg>
+  ),
+  dairy: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2a8 8 0 000 16 8 8 0 000-16zM12 18v4M8 20h8"/>
+    </svg>
+  ),
+  protein: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <rect x="3" y="3" width="18" height="18" rx="3"/><path d="M3 9h18M9 21V9"/>
+    </svg>
+  ),
+  pantry: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <circle cx="5" cy="5" r="1.5"/><circle cx="12" cy="5" r="1.5"/><circle cx="19" cy="5" r="1.5"/>
+      <circle cx="5" cy="12" r="1.5"/><circle cx="12" cy="12" r="1.5"/><circle cx="19" cy="12" r="1.5"/>
+      <circle cx="5" cy="19" r="1.5"/><circle cx="12" cy="19" r="1.5"/><circle cx="19" cy="19" r="1.5"/>
+    </svg>
+  ),
+  spice: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M12 2L8 8h8L12 2zM8 8v10a4 4 0 008 0V8"/>
+    </svg>
+  ),
+  other: (
+    <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.6" strokeLinecap="round" strokeLinejoin="round">
+      <path d="M21 10H3M21 10V19a2 2 0 01-2 2H5a2 2 0 01-2-2V10M21 10l-2-7H5L3 10"/>
+    </svg>
+  ),
 };
 
 interface FormState {
@@ -71,8 +104,6 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
   const [error, setError] = useState('');
   const isSavingRef = useRef(false);
 
-  // Reset form AND saving state whenever the modal switches item/preset.
-  // Also clears any stuck saving=true left from a previous session.
   useEffect(() => {
     setSaving(false);
     isSavingRef.current = false;
@@ -96,15 +127,8 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
     const qty = Number(form.quantity);
     if (isNaN(qty) || qty <= 0) return setError('Quantity must be greater than 0.');
 
-    // Read session synchronously from Zustand — avoids acquiring the Supabase
-    // auth SDK lock (navigator.locks) which competes with the insert/update query.
     const { session } = useAuthStore.getState();
-    console.log('[Pantry] SAVE START | isEdit:', isEdit, '| user_id:', session?.user?.id ?? 'none');
-
-    if (!session) {
-      setError('Not authenticated. Please refresh the page and try again.');
-      return;
-    }
+    if (!session) { setError('Not authenticated. Please refresh and try again.'); return; }
 
     isSavingRef.current = true;
     setSaving(true);
@@ -121,24 +145,13 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
         package_size: pkgSize != null && !isNaN(pkgSize) ? pkgSize : null,
         package_unit: form.package_unit.trim() || null,
       };
-      console.log('[Pantry] SAVE payload:', payload);
 
       if (isEdit) {
         const { error: err } = await supabase.from('pantry_items').update(payload).eq('id', item.id);
-        if (err) {
-          console.error('[Pantry] SAVE update ERROR:', err);
-          throw err;
-        }
-        console.log('[Pantry] SAVE update SUCCESS');
+        if (err) throw err;
       } else {
-        const { error: err } = await supabase
-          .from('pantry_items')
-          .insert({ ...payload, user_id: session.user.id });
-        if (err) {
-          console.error('[Pantry] SAVE insert ERROR:', err);
-          throw err;
-        }
-        console.log('[Pantry] SAVE insert SUCCESS');
+        const { error: err } = await supabase.from('pantry_items').insert({ ...payload, user_id: session.user.id });
+        if (err) throw err;
       }
 
       await onSaved();
@@ -146,7 +159,6 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
     } catch (err: any) {
       setError(err.message ?? 'Something went wrong. Try again.');
     } finally {
-      console.log('[Pantry] SAVE FINALLY');
       isSavingRef.current = false;
       setSaving(false);
     }
@@ -213,7 +225,11 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
               placeholder="e.g. lactose free, organic…" value={form.notes} onChange={set('notes')} />
           </div>
 
-          {error && <div style={{ background: 'rgba(255,77,0,.08)', border: '1px solid rgba(255,77,0,.2)', borderRadius: 9, padding: '10px 14px', fontSize: 13, color: '#FF7A50' }}>{error}</div>}
+          {error && (
+            <div style={{ background: 'rgba(255,77,0,.08)', border: '1px solid rgba(255,77,0,.2)', borderRadius: 9, padding: '10px 14px', fontSize: 13, color: '#FF7A50' }}>
+              {error}
+            </div>
+          )}
         </div>
 
         <div style={{ padding: '16px 24px', borderTop: '1px solid var(--bdr)', display: 'flex', gap: 10, justifyContent: 'flex-end' }}>
@@ -255,12 +271,205 @@ function DeleteConfirm({ item, onCancel, onConfirm, deleting }: {
   );
 }
 
+// ── Status badge helper ───────────────────────────────────────────────────────
+
+function getStatusBadge(item: PantryItem): { label: string; dot: string; bg: string; color: string; filled: boolean } {
+  if (!item.expiry_date) {
+    return { label: 'FRESH', dot: '#22c55e', bg: 'rgba(34,197,94,0.12)', color: '#22c55e', filled: false };
+  }
+  const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date) as any;
+  if (status === 'expired') {
+    return { label: 'EXPIRED', dot: '#ef4444', bg: 'rgba(239,68,68,0.18)', color: '#ef4444', filled: true };
+  }
+  if (daysUntilExpiry === 0) {
+    return { label: 'EXP TODAY', dot: '#f97316', bg: 'rgba(249,115,22,0.14)', color: '#f97316', filled: false };
+  }
+  if (daysUntilExpiry <= 5) {
+    return { label: `EXP IN ${daysUntilExpiry}D`, dot: '#f97316', bg: 'rgba(249,115,22,0.12)', color: '#f97316', filled: false };
+  }
+  return { label: 'FRESH', dot: '#22c55e', bg: 'rgba(34,197,94,0.12)', color: '#22c55e', filled: false };
+}
+
+// ── Item Card ─────────────────────────────────────────────────────────────────
+
+function ItemCard({ item, onEdit, onDelete, onQtyChange }: {
+  item: PantryItem;
+  onEdit: () => void;
+  onDelete: () => void;
+  onQtyChange: (newQty: number) => void;
+}) {
+  const [menuOpen, setMenuOpen] = useState(false);
+  const badge = getStatusBadge(item);
+  const isExpired = badge.label === 'EXPIRED';
+
+  const pkgLine = (() => {
+    const catLabel = {
+      produce: 'PRODUCE',
+      dairy: 'DAIRY',
+      protein: 'MEAT & SEAFOOD',
+      pantry: 'PANTRY STAPLES',
+      spice: 'SPICES',
+      other: 'OTHER',
+    }[item.category] ?? item.category.toUpperCase();
+
+    if (item.package_size && item.package_unit) {
+      return `${catLabel} · ${item.package_size} ${item.package_unit}`;
+    }
+    if (item.package_size) {
+      return `${catLabel} · ${item.package_size} ${item.unit}`;
+    }
+    return catLabel;
+  })();
+
+  return (
+    <div
+      style={{
+        background: isExpired ? 'rgba(239,68,68,0.06)' : 'rgba(14,14,22,0.62)',
+        backdropFilter: 'blur(20px)',
+        WebkitBackdropFilter: 'blur(20px)',
+        border: isExpired ? '1px solid rgba(239,68,68,0.20)' : '1px solid rgba(255,255,255,0.09)',
+        borderRadius: 16,
+        padding: 20,
+        position: 'relative',
+        boxShadow: '0 4px 24px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.05)',
+        display: 'flex',
+        flexDirection: 'column',
+        gap: 0,
+      }}
+    >
+      {/* Top row: badge + menu */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 14 }}>
+        <div style={{
+          display: 'inline-flex', alignItems: 'center', gap: 6,
+          background: badge.bg,
+          borderRadius: 20,
+          padding: badge.filled ? '4px 10px' : '4px 10px',
+          border: `1px solid ${badge.color}22`,
+        }}>
+          <div style={{ width: 7, height: 7, borderRadius: '50%', background: badge.dot, flexShrink: 0 }} />
+          <span style={{ fontSize: 10.5, fontWeight: 700, color: badge.color, letterSpacing: '0.6px' }}>
+            {badge.label}
+          </span>
+        </div>
+
+        {/* Three-dot menu */}
+        <div style={{ position: 'relative' }}>
+          <button
+            onClick={() => setMenuOpen(o => !o)}
+            style={{ background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', padding: '4px 6px', borderRadius: 6, display: 'flex', flexDirection: 'column', gap: 3, alignItems: 'center' }}
+          >
+            {[0,1,2].map(i => <div key={i} style={{ width: 3.5, height: 3.5, borderRadius: '50%', background: 'currentColor' }} />)}
+          </button>
+          {menuOpen && (
+            <>
+              <div style={{ position: 'fixed', inset: 0, zIndex: 50 }} onClick={() => setMenuOpen(false)} />
+              <div style={{
+                position: 'absolute', top: '100%', right: 0, zIndex: 51,
+                background: 'rgba(8,8,18,0.95)',
+                backdropFilter: 'blur(20px)',
+                WebkitBackdropFilter: 'blur(20px)',
+                border: '1px solid rgba(255,255,255,0.12)',
+                borderRadius: 10,
+                overflow: 'hidden',
+                minWidth: 130,
+                boxShadow: '0 8px 32px rgba(0,0,0,0.50)',
+              }}>
+                <button
+                  onClick={() => { setMenuOpen(false); onEdit(); }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, color: 'var(--txt)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--fb)' }}
+                  onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
+                  onMouseOut={e => (e.currentTarget.style.background = 'none')}
+                >
+                  ✏️ Edit
+                </button>
+                <button
+                  onClick={() => { setMenuOpen(false); onDelete(); }}
+                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--fb)' }}
+                  onMouseOver={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
+                  onMouseOut={e => (e.currentTarget.style.background = 'none')}
+                >
+                  🗑 Delete
+                </button>
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
+      {/* Name */}
+      <div style={{
+        fontSize: 22, fontWeight: 700, color: isExpired ? 'var(--txt2)' : 'var(--txt)',
+        textDecoration: isExpired ? 'line-through' : 'none',
+        marginBottom: 4, lineHeight: 1.2,
+      }}>
+        {item.name}
+      </div>
+
+      {/* Category + package info */}
+      <div style={{
+        fontSize: 10.5, color: 'var(--txt2)', textTransform: 'uppercase', letterSpacing: '0.6px',
+        marginBottom: 20, fontWeight: 500,
+      }}>
+        {pkgLine}
+      </div>
+
+      {/* Bottom row: stepper + icon */}
+      <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        {/* Quantity stepper */}
+        <div style={{
+          display: 'inline-flex', alignItems: 'center',
+          background: 'rgba(255,255,255,0.06)',
+          border: '1px solid rgba(255,255,255,0.10)',
+          borderRadius: 24,
+          overflow: 'hidden',
+        }}>
+          <button
+            onClick={() => onQtyChange(Math.max(0, item.quantity - 1))}
+            style={{ width: 36, height: 36, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--fb)' }}
+          >
+            −
+          </button>
+          <span style={{ minWidth: 28, textAlign: 'center', fontSize: 14, fontWeight: 600, color: 'var(--txt)', userSelect: 'none' }}>
+            {item.quantity}
+          </span>
+          <button
+            onClick={() => onQtyChange(item.quantity + 1)}
+            style={{ width: 36, height: 36, background: 'none', border: 'none', cursor: 'pointer', color: 'var(--txt2)', fontSize: 16, display: 'flex', alignItems: 'center', justifyContent: 'center', fontFamily: 'var(--fb)' }}
+          >
+            +
+          </button>
+        </div>
+
+        {/* Category icon */}
+        <div style={{
+          width: 36, height: 36, borderRadius: '50%',
+          background: 'rgba(255,255,255,0.07)',
+          border: '1px solid rgba(255,255,255,0.09)',
+          display: 'flex', alignItems: 'center', justifyContent: 'center',
+          color: 'var(--txt2)',
+          flexShrink: 0,
+        }}>
+          {CATEGORY_SVG[item.category]}
+        </div>
+      </div>
+    </div>
+  );
+}
+
 // ── Main Page ─────────────────────────────────────────────────────────────────
 
+const FILTER_TABS: Array<{ key: Category | 'all'; label: string }> = [
+  { key: 'all',     label: 'All Items' },
+  { key: 'produce', label: 'Produce' },
+  { key: 'protein', label: 'Meat & Seafood' },
+  { key: 'dairy',   label: 'Dairy' },
+  { key: 'pantry',  label: 'Pantry Staples' },
+  { key: 'spice',   label: 'Spices' },
+  { key: 'other',   label: 'Other' },
+];
+
 export function PantryPage() {
-  // Seed from module cache so navigating back shows data before the refresh lands.
   const [items, setItems] = useState<PantryItem[]>(_cache);
-  // Only show the full-page spinner when we have no data at all.
   const [loading, setLoading] = useState(!_cacheReady);
   const [fetchError, setFetchError] = useState('');
   const [search, setSearch] = useState('');
@@ -285,111 +494,60 @@ export function PantryPage() {
   useEffect(() => { modalOpenRef.current = modalOpen || scanModalOpen; }, [modalOpen, scanModalOpen]);
 
   const fetchItems = useCallback(async (isBackground = false) => {
-    if (isFetchingRef.current) {
-      console.log('[Pantry] fetchPantry SKIP — already in flight');
-      return;
-    }
+    if (isFetchingRef.current) return;
     isFetchingRef.current = true;
-    console.log('[Pantry] fetchPantry START', isBackground ? '(background)' : '(foreground)');
 
-    // Only show the full-page spinner when we have no data to display yet.
-    // Background refreshes (navigation return, tab focus, realtime) never
-    // blank the page — existing items stay visible until the new response lands.
-    if (!isBackground && !_cacheReady) {
-      setLoading(true);
-      setFetchError('');
-    }
+    if (!isBackground && !_cacheReady) { setLoading(true); setFetchError(''); }
 
     const { session } = useAuthStore.getState();
-    console.log('[Pantry] session:', !!session, '| user_id:', session?.user?.id ?? 'none');
-
     if (!session) {
-      console.warn('[Pantry] fetchPantry SKIP — no session');
       isFetchingRef.current = false;
-      if (!_cacheReady) {
-        setFetchError('Please log in to view your pantry.');
-        setLoading(false);
-      }
+      if (!_cacheReady) { setFetchError('Please log in to view your pantry.'); setLoading(false); }
       return;
     }
 
     try {
-      const t0 = performance.now();
-      console.log('[Pantry] querying table: pantry_items | user_id:', session.user.id);
-
       const { data, error } = await supabase
         .from('pantry_items')
         .select('*')
         .order('category')
         .order('name');
 
-      const ms = Math.round(performance.now() - t0);
-      console.log('[Pantry] SDK round-trip:', ms, 'ms');
-
       if (!isMountedRef.current) return;
+      if (error) throw error;
 
-      if (error) {
-        console.error('[Pantry] fetchPantry ERROR:', {
-          message: error.message,
-          code: (error as any).code,
-          details: (error as any).details,
-          hint: (error as any).hint,
-          status: (error as any).status,
-        });
-        throw error;
-      }
-
-      // Update module cache so the next mount gets fresh data immediately.
       _cache = (data as PantryItem[]) ?? [];
       _cacheReady = true;
       setItems(_cache);
       setFetchError('');
-      console.log('[Pantry] fetchPantry SUCCESS', _cache.length, 'items in', ms, 'ms');
     } catch (err: any) {
       if (!isMountedRef.current) return;
-      console.error('[Pantry] fetchPantry ERROR:', err);
-      // Only surface the error UI when there is no cached data to show.
-      // If we already have items on screen, a silent background failure is fine.
-      if (!_cacheReady) {
-        setFetchError(err.message ?? 'Failed to load pantry items.');
-      }
+      if (!_cacheReady) setFetchError(err.message ?? 'Failed to load pantry items.');
     } finally {
-      console.log('[Pantry] fetchPantry FINALLY');
       isFetchingRef.current = false;
-      if (isMountedRef.current) {
-        setLoading(false);
-      }
+      if (isMountedRef.current) setLoading(false);
     }
   }, []);
 
   useEffect(() => {
-    // If the cache already has data (navigating back), do a silent background
-    // refresh so the user sees their items immediately without a spinner.
     fetchItems(_cacheReady);
 
     const channel = supabase
       .channel(`pantry_rt_${Date.now()}`)
       .on('postgres_changes', { event: '*', schema: 'public', table: 'pantry_items' }, () => {
-        console.log('[Pantry] realtime change — background refresh');
         if (!modalOpenRef.current) fetchItems(true);
       })
-      .subscribe((status) => {
-        console.log('[Pantry] realtime SUBSCRIBE', status);
-      });
+      .subscribe();
 
     const onVisible = () => {
       if (document.visibilityState === 'visible' && !modalOpenRef.current) {
         if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
-        visibilityTimerRef.current = setTimeout(() => {
-          console.log('[Pantry] visibility REFRESH');
-          fetchItems(true);
-        }, 800);
+        visibilityTimerRef.current = setTimeout(() => fetchItems(true), 800);
       }
     };
     document.addEventListener('visibilitychange', onVisible);
 
     return () => {
-      console.log('[Pantry] realtime CLEANUP');
       supabase.removeChannel(channel);
       document.removeEventListener('visibilitychange', onVisible);
       if (visibilityTimerRef.current) clearTimeout(visibilityTimerRef.current);
@@ -408,128 +566,171 @@ export function PantryPage() {
     }
   };
 
+  const handleQtyChange = async (item: PantryItem, newQty: number) => {
+    if (newQty < 0) return;
+    // Optimistic update
+    const updated = items.map(i => i.id === item.id ? { ...i, quantity: newQty } : i);
+    setItems(updated);
+    _cache = updated;
+    await supabase.from('pantry_items').update({ quantity: newQty }).eq('id', item.id);
+  };
+
   const filtered = items.filter(i => {
     const matchSearch = i.name.toLowerCase().includes(search.toLowerCase());
     const matchCat = activeCategory === 'all' || i.category === activeCategory;
     return matchSearch && matchCat;
   });
 
-  const counts: Partial<Record<Category | 'all', number>> = { all: items.length };
-  items.forEach(i => { counts[i.category] = (counts[i.category] ?? 0) + 1; });
+  const expiringCount = items.filter(i => {
+    const { status, daysUntilExpiry } = getExpiryStatus(i.expiry_date) as any;
+    return status === 'expired' || (i.expiry_date && daysUntilExpiry <= 3);
+  }).length;
 
-  const filterTabs: Array<{ key: Category | 'all'; label: string }> = [
-    { key: 'all', label: 'All' },
-    { key: 'produce', label: '🥦 Produce' },
-    { key: 'dairy', label: '🥛 Dairy' },
-    { key: 'protein', label: '🥩 Protein' },
-    { key: 'pantry', label: '🫙 Pantry' },
-    { key: 'spice', label: '🧂 Spice' },
-    { key: 'other', label: '📦 Other' },
-  ];
+  return (
+    <div className="pageWrapper" style={{ paddingTop: 32 }}>
 
-  const COMMON_ITEMS: Array<{ name: string; category: Category; unit: Unit }> = [
-    { name: 'Olive Oil', category: 'pantry', unit: 'ml' },
-    { name: 'Vegetable Oil', category: 'pantry', unit: 'ml' },
-    { name: 'White Rice', category: 'pantry', unit: 'g' },
-    { name: 'Brown Rice', category: 'pantry', unit: 'g' },
-    { name: 'Pasta', category: 'pantry', unit: 'g' },
-    { name: 'Bread', category: 'pantry', unit: 'pieces' },
-    { name: 'Flour', category: 'pantry', unit: 'g' },
-    { name: 'Sugar', category: 'pantry', unit: 'g' },
-    { name: 'Honey', category: 'pantry', unit: 'g' },
-    { name: 'Canned Tomatoes', category: 'pantry', unit: 'pieces' },
-    { name: 'Canned Chickpeas', category: 'pantry', unit: 'pieces' },
-    { name: 'Canned Black Beans', category: 'pantry', unit: 'pieces' },
-    { name: 'Canned Lentils', category: 'pantry', unit: 'pieces' },
-    { name: 'Canned Tuna', category: 'pantry', unit: 'pieces' },
-    { name: 'Soy Sauce', category: 'pantry', unit: 'ml' },
-    { name: 'Tomato Paste', category: 'pantry', unit: 'g' },
-    { name: 'Chicken Broth', category: 'pantry', unit: 'ml' },
-    { name: 'Oats', category: 'pantry', unit: 'g' },
-    { name: 'Peanut Butter', category: 'pantry', unit: 'g' },
-    { name: 'Apple Cider Vinegar', category: 'pantry', unit: 'ml' },
-    { name: 'Salt', category: 'spice', unit: 'g' },
-    { name: 'Black Pepper', category: 'spice', unit: 'g' },
-    { name: 'Garlic Powder', category: 'spice', unit: 'g' },
-    { name: 'Onion Powder', category: 'spice', unit: 'g' },
-    { name: 'Cumin', category: 'spice', unit: 'g' },
-    { name: 'Paprika', category: 'spice', unit: 'g' },
-    { name: 'Turmeric', category: 'spice', unit: 'g' },
-    { name: 'Oregano', category: 'spice', unit: 'g' },
-    { name: 'Chili Flakes', category: 'spice', unit: 'g' },
-    { name: 'Cinnamon', category: 'spice', unit: 'g' },
-    { name: 'Garlic', category: 'produce', unit: 'pieces' },
-    { name: 'Onion', category: 'produce', unit: 'pieces' },
-    { name: 'Tomatoes', category: 'produce', unit: 'pieces' },
-    { name: 'Lemon', category: 'produce', unit: 'pieces' },
-    { name: 'Potatoes', category: 'produce', unit: 'g' },
-    { name: 'Carrots', category: 'produce', unit: 'pieces' },
-    { name: 'Spinach', category: 'produce', unit: 'g' },
-    { name: 'Bell Pepper', category: 'produce', unit: 'pieces' },
-    { name: 'Broccoli', category: 'produce', unit: 'g' },
-    { name: 'Avocado', category: 'produce', unit: 'pieces' },
-    { name: 'Eggs', category: 'dairy', unit: 'pieces' },
-    { name: 'Milk', category: 'dairy', unit: 'ml' },
-    { name: 'Butter', category: 'dairy', unit: 'g' },
-    { name: 'Cheddar Cheese', category: 'dairy', unit: 'g' },
-    { name: 'Greek Yogurt', category: 'dairy', unit: 'g' },
-    { name: 'Parmesan', category: 'dairy', unit: 'g' },
-    { name: 'Chicken Breast', category: 'protein', unit: 'g' },
-    { name: 'Ground Beef', category: 'protein', unit: 'g' },
-    { name: 'Salmon', category: 'protein', unit: 'g' },
-    { name: 'Tofu', category: 'protein', unit: 'g' },
-    { name: 'Shrimp', category: 'protein', unit: 'g' },
-  ];
-
-  const existingNames = new Set(items.map(i => i.name.trim().toLowerCase()));
-  const commonSuggestions = COMMON_ITEMS
-    .filter(s => !existingNames.has(s.name.toLowerCase()))
-    .filter(s => activeCategory === 'all' || s.category === activeCategory)
-    .slice(0, 10);
-
-  const getCatClass = (cat: string) => ({
-    protein: 'cbProtein', produce: 'cbProduce', dairy: 'cbDairy',
-    pantry: 'cbPantry', spice: 'cbSpice', other: 'cbOther',
-  }[cat] ?? 'cbOther');
-
-  const getExpiryPill = (item: PantryItem) => {
-    const { status, daysUntilExpiry } = getExpiryStatus(item.expiry_date) as any;
-    if (!item.expiry_date) return { label: '—', cls: '' };
-    if (status === 'expired') return { label: 'Expired', cls: 'pillR' };
-    if (daysUntilExpiry === 0) return { label: 'Today', cls: 'pillR' };
-    if (daysUntilExpiry <= 2) return { label: `${daysUntilExpiry}d`, cls: 'pillO' };
-    if (daysUntilExpiry <= 5) return { label: `${daysUntilExpiry} days`, cls: 'pillO' };
-    return { label: `${daysUntilExpiry} days`, cls: 'pillG' };
-  };
-
-  // ── Render helpers ────────────────────────────────────────────────────────
-
-  const renderTableBody = () => {
-    if (loading) {
-      return (
-        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: 32, color: 'var(--txt2)' }}>
-          <div className="animate-spin" style={{ width: 18, height: 18, border: '2px solid var(--surf3)', borderTopColor: 'var(--acc)', borderRadius: '50%' }} />
-          Loading items…
+      {/* ── Header ── */}
+      <div style={{ marginBottom: 28 }}>
+        <h1 style={{ fontSize: 48, fontWeight: 800, color: 'var(--txt)', margin: '0 0 6px', letterSpacing: '-1px', lineHeight: 1 }}>
+          Inventory
+        </h1>
+        <div style={{ fontSize: 13, color: 'var(--txt2)', display: 'flex', alignItems: 'center', gap: 8 }}>
+          {loading ? 'Loading…' : (
+            <>
+              <span>{items.length} items total</span>
+              {expiringCount > 0 && (
+                <>
+                  <span style={{ color: 'var(--txt3)' }}>·</span>
+                  <span style={{ display: 'inline-flex', alignItems: 'center', gap: 5, color: '#f97316' }}>
+                    <span style={{ width: 7, height: 7, borderRadius: '50%', background: '#f97316', display: 'inline-block' }} />
+                    {expiringCount} expiring soon
+                  </span>
+                </>
+              )}
+            </>
+          )}
         </div>
-      );
-    }
+      </div>
 
-    if (fetchError) {
-      return (
-        <div style={{ padding: '40px 32px', textAlign: 'center' }}>
+      {/* ── Search + Action buttons ── */}
+      <div style={{ display: 'flex', gap: 12, marginBottom: 20, alignItems: 'center' }}>
+        {/* Search */}
+        <div style={{ flex: 1, position: 'relative' }}>
+          <svg
+            width="15" height="15" viewBox="0 0 24 24" fill="none"
+            stroke="currentColor" strokeWidth="2" strokeLinecap="round"
+            style={{ position: 'absolute', left: 14, top: '50%', transform: 'translateY(-50%)', color: 'var(--txt3)', pointerEvents: 'none' }}
+          >
+            <circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/>
+          </svg>
+          <input
+            style={{
+              width: '100%', boxSizing: 'border-box',
+              background: 'rgba(255,255,255,0.05)',
+              border: '1px solid rgba(255,255,255,0.10)',
+              borderRadius: 12,
+              padding: '11px 16px 11px 40px',
+              fontSize: 13.5, color: 'var(--txt)',
+              outline: 'none', fontFamily: 'var(--fb)',
+              backdropFilter: 'blur(12px)',
+            }}
+            placeholder="Search inventory…"
+            value={search}
+            onChange={e => setSearch(e.target.value)}
+          />
+        </div>
+
+        {/* Add Item button */}
+        <button
+          onClick={() => { setModalItem(null); setModalOpen(true); }}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 7,
+            background: 'rgba(255,255,255,0.07)',
+            border: '1px solid rgba(255,255,255,0.14)',
+            borderRadius: 12,
+            padding: '11px 20px',
+            fontSize: 13.5, fontWeight: 600,
+            color: 'var(--txt)', cursor: 'pointer',
+            fontFamily: 'var(--fb)',
+            backdropFilter: 'blur(12px)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <span style={{ fontSize: 16, lineHeight: 1 }}>+</span> Add Item
+        </button>
+
+        {/* Scan Receipt button */}
+        <button
+          onClick={() => setScanModalOpen(true)}
+          style={{
+            display: 'flex', alignItems: 'center', gap: 8,
+            background: 'var(--acc)',
+            border: 'none',
+            borderRadius: 12,
+            padding: '11px 20px',
+            fontSize: 13.5, fontWeight: 700,
+            color: '#0a0a00', cursor: 'pointer',
+            fontFamily: 'var(--fb)',
+            whiteSpace: 'nowrap',
+          }}
+        >
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round">
+            <rect x="3" y="3" width="18" height="18" rx="3"/>
+            <path d="M7 7h10M7 11h10M7 15h6"/>
+          </svg>
+          Scan Receipt
+        </button>
+      </div>
+
+      {/* ── Category filter tabs ── */}
+      <div style={{ display: 'flex', gap: 8, marginBottom: 24, flexWrap: 'wrap' }}>
+        {FILTER_TABS.map(({ key, label }) => {
+          const isActive = activeCategory === key;
+          return (
+            <button
+              key={key}
+              onClick={() => setActiveCategory(key)}
+              style={{
+                padding: '7px 16px',
+                borderRadius: 24,
+                border: isActive ? '1px solid rgba(255,255,255,0.20)' : '1px solid rgba(255,255,255,0.09)',
+                background: isActive ? 'rgba(255,255,255,0.12)' : 'rgba(255,255,255,0.04)',
+                color: isActive ? 'var(--txt)' : 'var(--txt2)',
+                fontSize: 13, fontWeight: isActive ? 600 : 400,
+                cursor: 'pointer', fontFamily: 'var(--fb)',
+                backdropFilter: 'blur(8px)',
+                transition: 'all .15s',
+              }}
+            >
+              {label}
+            </button>
+          );
+        })}
+      </div>
+
+      {/* ── Content ── */}
+      {loading && (
+        <div style={{ display: 'flex', alignItems: 'center', gap: 10, padding: '48px 0', color: 'var(--txt2)', justifyContent: 'center' }}>
+          <div style={{ width: 18, height: 18, border: '2px solid rgba(255,255,255,0.08)', borderTopColor: 'var(--acc)', borderRadius: '50%', animation: 'spin 0.7s linear infinite' }} />
+          Loading inventory…
+        </div>
+      )}
+
+      {!loading && fetchError && (
+        <div style={{ padding: '40px 0', textAlign: 'center' }}>
           <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--txt)', marginBottom: 6 }}>Failed to load pantry</div>
           <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 16 }}>{fetchError}</div>
           <button className="tbBtn" onClick={() => fetchItems()}>Retry</button>
         </div>
-      );
-    }
+      )}
 
-    if (filtered.length === 0) {
-      return (
-        <div style={{ padding: '56px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: 40, marginBottom: 14 }}>{activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}</div>
-          <div style={{ fontSize: 15, fontWeight: 700, color: 'var(--txt)', marginBottom: 6 }}>
+      {!loading && !fetchError && filtered.length === 0 && (
+        <div style={{ padding: '64px 0', textAlign: 'center' }}>
+          <div style={{ fontSize: 42, marginBottom: 14 }}>
+            {activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}
+          </div>
+          <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 8 }}>
             {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}
           </div>
           <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 20 }}>
@@ -539,141 +740,23 @@ export function PantryPage() {
             <button className="tbBtn" onClick={() => { setModalItem(null); setModalOpen(true); }}>+ Add First Item</button>
           )}
         </div>
-      );
-    }
+      )}
 
-    return (
-      <table className="ptable">
-        <thead>
-          <tr>
-            <th>Item</th><th>Category</th><th>Amount</th><th>Package Size</th><th>Expiry</th><th>Status</th><th>Action</th>
-          </tr>
-        </thead>
-        <tbody>
-          {filtered.map(item => {
-            const pill = getExpiryPill(item);
-            const pkgDisplay = item.package_size != null
-              ? `${item.package_size}${item.package_unit ? ' ' + item.package_unit : ''}`
-              : '—';
-            return (
-              <tr key={item.id}>
-                <td style={{ fontWeight: 500 }}>{CATEGORY_ICONS[item.category]} {item.name}</td>
-                <td><span className={`catBadge ${getCatClass(item.category)}`}>{item.category}</span></td>
-                <td style={{ color: 'var(--txt2)' }}>{item.quantity} {item.unit}</td>
-                <td style={{ color: pkgDisplay === '—' ? 'var(--txt3)' : 'var(--txt)', fontWeight: pkgDisplay !== '—' ? 500 : 400 }}>{pkgDisplay}</td>
-                <td style={{ color: pill.cls === 'pillR' ? '#FF6040' : 'var(--txt2)' }}>{item.expiry_date ?? '—'}</td>
-                <td>
-                  {pill.label !== '—'
-                    ? <span className={`expPill ${pill.cls}`} style={{ margin: 0 }}>{pill.label}</span>
-                    : <span style={{ color: 'var(--txt3)', fontSize: 12 }}>—</span>}
-                </td>
-                <td style={{ display: 'flex', gap: 6 }}>
-                  <button className="trDel" style={{ color: 'var(--txt2)', fontSize: 12, padding: '4px 10px' }}
-                    onClick={() => { setModalItem(item); setModalOpen(true); }}>Edit</button>
-                  <button className="trDel" onClick={() => setDeleteTarget(item)}>✕</button>
-                </td>
-              </tr>
-            );
-          })}
-        </tbody>
-      </table>
-    );
-  };
-
-  return (
-    <div className="pageWrapper">
-      {/* Header */}
-      <div className="nutritionPageHero">
-        <p className="nutritionPageEyebrow">Track · Manage · Reduce Waste</p>
-        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-end', gap: 16, flexWrap: 'wrap' }}>
-          <div>
-            <h1 className="nutritionPageTitle">Pantry</h1>
-            <p className="nutritionPageSubtitle">
-              {loading ? 'Loading…' : `${items.length} items · ${items.filter(i => { const { status } = getExpiryStatus(i.expiry_date) as any; return status === 'danger' || status === 'expired'; }).length} expiring soon`}
-            </p>
-          </div>
-          <div style={{ display: 'flex', gap: 10, flexShrink: 0, marginBottom: 4 }}>
-            <button onClick={() => setScanModalOpen(true)} className="btn" style={{ fontSize: 13 }}>
-              🧾 Scan Receipt
-            </button>
-            <button onClick={() => { setModalItem(null); setModalOpen(true); }} className="tbBtn">+ Add Item</button>
-          </div>
-        </div>
-      </div>
-
-      {/* Filter tabs */}
-      <div className="filterBar">
-        {filterTabs.map(({ key, label }) => (
-          <button
-            type="button" key={key}
-            className={`fchip${activeCategory === key ? ' active' : ''}`}
-            onClick={() => setActiveCategory(key)}
-          >
-            {label}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      <input
-        style={{ background: 'var(--surf2)', border: '1px solid var(--bdr2)', borderRadius: 8, padding: '7px 14px', fontSize: 13, color: 'var(--txt2)', width: '100%', outline: 'none', fontFamily: 'var(--fb)' }}
-        placeholder="Search items…"
-        value={search}
-        onChange={e => setSearch(e.target.value)}
-      />
-
-      {/* Table */}
-      <div className="card" style={{ padding: 0, overflow: 'hidden' }}>
-        {renderTableBody()}
-        <button
-          style={{ width: '100%', border: 'none', borderTop: '1px dashed var(--bdr2)', padding: 11, borderRadius: 0, color: 'var(--txt3)', background: 'none', cursor: 'pointer', fontSize: 12 }}
-          onClick={() => { setModalItem(null); setModalOpen(true); }}
-        >+ Add pantry item</button>
-      </div>
-
-      {/* Common pantry suggestions */}
-      {!loading && !fetchError && commonSuggestions.length > 0 && (
-        <div className="card" style={{ marginTop: 16 }}>
-          <div className="cardHd" style={{ marginBottom: 10 }}>
-            <div className="cardTitle">💡 Common Household Items</div>
-            <div style={{ fontSize: 12, color: 'var(--txt2)' }}>
-              Quick-add items typically found in most homes
-            </div>
-          </div>
-          <div style={{ display: 'flex', flexWrap: 'wrap', gap: 8 }}>
-            {commonSuggestions.map((s, i) => (
-              <button
-                key={i}
-                type="button"
-                onClick={() => {
-                  setModalItem(null);
-                  setModalPreset({ name: s.name, category: s.category, unit: s.unit });
-                  setModalOpen(true);
-                }}
-                style={{
-                  display: 'flex', alignItems: 'center', gap: 6,
-                  background: 'var(--surf2)', border: '1px solid var(--bdr2)',
-                  borderRadius: 20, padding: '6px 13px', fontSize: 12,
-                  color: 'var(--txt2)', cursor: 'pointer', fontFamily: 'var(--fb)',
-                  transition: 'border-color .15s, color .15s',
-                }}
-                onMouseOver={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--acc)';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--txt)';
-                }}
-                onMouseOut={e => {
-                  (e.currentTarget as HTMLButtonElement).style.borderColor = 'var(--bdr2)';
-                  (e.currentTarget as HTMLButtonElement).style.color = 'var(--txt2)';
-                }}
-              >
-                <span>{CATEGORY_ICONS[s.category]}</span>
-                <span>+ {s.name}</span>
-              </button>
-            ))}
-          </div>
+      {!loading && !fetchError && filtered.length > 0 && (
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 16 }}>
+          {filtered.map(item => (
+            <ItemCard
+              key={item.id}
+              item={item}
+              onEdit={() => { setModalItem(item); setModalOpen(true); }}
+              onDelete={() => setDeleteTarget(item)}
+              onQtyChange={(newQty) => handleQtyChange(item, newQty)}
+            />
+          ))}
         </div>
       )}
 
+      {/* ── Modals ── */}
       {modalOpen && (
         <PantryModal
           item={modalItem}
