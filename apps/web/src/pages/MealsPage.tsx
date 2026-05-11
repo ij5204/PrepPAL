@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { Clock, AlertTriangle, RefreshCw, Sparkles } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import type { MealSuggestion } from '@preppal/types';
@@ -84,7 +85,7 @@ function RecipeModal({ meal, onClose, onLog, isLogging }: {
             ))}
             {totalTime > 0 && (
               <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.45)', padding: '3px 0' }}>
-                ⏱ {totalTime} min · {meal.servings} serving{meal.servings > 1 ? 's' : ''}
+                <Clock size={11} style={{ display: 'inline', verticalAlign: 'middle', marginRight: 4 }} />{totalTime} min · {meal.servings} serving{meal.servings > 1 ? 's' : ''}
               </span>
             )}
           </div>
@@ -132,8 +133,9 @@ function RecipeModal({ meal, onClose, onLog, isLogging }: {
           {/* Missing ingredients */}
           {missing.length > 0 && (
             <div style={{ marginBottom: 20 }}>
-              <div style={{ fontSize: 10, fontWeight: 700, color: '#f97316', letterSpacing: '1px', marginBottom: 10 }}>
-                ⚠ REQUIRES FROM STORE ({missing.length})
+              <div style={{ fontSize: 10, fontWeight: 700, color: '#f97316', letterSpacing: '1px', marginBottom: 10, display: 'flex', alignItems: 'center', gap: 6 }}>
+                <AlertTriangle size={11} />
+                REQUIRES FROM STORE ({missing.length})
               </div>
               <div style={{
                 background: 'rgba(249,115,22,0.08)', border: '1px solid rgba(249,115,22,0.18)',
@@ -181,7 +183,7 @@ function RecipeModal({ meal, onClose, onLog, isLogging }: {
           }}>
             {isLogging
               ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(0,0,0,0.25)', borderTopColor: '#000', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />Logging…</>
-              : '⊕  Log Meal'}
+              : 'Log Meal'}
           </button>
         </div>
       </div>
@@ -227,7 +229,7 @@ function MealCard({ meal, idx, logged, onLog, onView }: {
             ))}
           </div>
           {totalTime > 0 && (
-            <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', flexShrink: 0, paddingLeft: 8 }}>⏱ {totalTime}m</span>
+            <span style={{ fontSize: 10.5, color: 'rgba(255,255,255,0.35)', flexShrink: 0, paddingLeft: 8, display: 'flex', alignItems: 'center', gap: 4 }}><Clock size={10} />{totalTime}m</span>
           )}
         </div>
 
@@ -260,7 +262,7 @@ function MealCard({ meal, idx, logged, onLog, onView }: {
         {/* Missing ingredients */}
         {missing.length > 0 && (
           <div style={{ marginBottom: 8, display: 'flex', alignItems: 'flex-start', gap: 6 }}>
-            <span style={{ fontSize: 11, color: '#f97316', flexShrink: 0, marginTop: 1 }}>⚠</span>
+            <AlertTriangle size={11} color="#f97316" style={{ flexShrink: 0, marginTop: 1 }} />
             <span style={{ fontSize: 11.5, color: '#f97316', lineHeight: 1.45 }}>
               Needs: {missing.map(m => m.name).join(', ')}
             </span>
@@ -338,7 +340,7 @@ function ConfigPanel({ mealType, servings, preferences, loading, onMealType, onS
                     color: on ? 'var(--acc)' : 'var(--txt2)',
                     border: on ? '1px solid rgba(200,255,0,0.28)' : '1px solid rgba(255,255,255,0.09)',
                     fontFamily: 'var(--fb)', transition: 'all .15s',
-                  }}>{on && '✓ '}{pref}</button>
+                  }}>{pref}</button>
                 );
               })}
             </div>
@@ -351,7 +353,7 @@ function ConfigPanel({ mealType, servings, preferences, loading, onMealType, onS
           }}>
             {loading
               ? <><div style={{ width: 16, height: 16, border: '2px solid rgba(0,0,0,0.25)', borderTopColor: '#000', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />Cooking up recipes…</>
-              : '✦  Generate Meal Suggestions'}
+              : <><Sparkles size={16} />Generate Suggestions</>}
           </button>
         </div>
       </div>
@@ -453,7 +455,7 @@ export function MealsPage() {
       });
       if (insertErr) throw insertErr;
       if (!mountedRef.current) return;
-      showToast(`✓ Logged: ${meal.meal_name}`);
+      showToast(`Logged: ${meal.meal_name}`);
     } catch (e: any) {
       if (!mountedRef.current) return;
       setError(e?.message ?? 'Failed to log meal.');
@@ -499,7 +501,7 @@ export function MealsPage() {
       )}
       {fallbackUsed && (
         <div style={{ background: 'rgba(245,158,11,0.08)', border: '1px solid rgba(245,158,11,0.20)', borderRadius: 12, padding: '12px 16px', fontSize: 13, color: '#f59e0b', marginBottom: 20 }}>
-          ⚠️ AI service unavailable — showing offline fallback suggestions.
+          AI service unavailable — showing offline fallback suggestions.
         </div>
       )}
 
@@ -537,7 +539,7 @@ export function MealsPage() {
             }}>
               {loading
                 ? <><div style={{ width: 14, height: 14, border: '2px solid rgba(255,255,255,0.12)', borderTopColor: 'var(--acc)', borderRadius: '50%', animation: 'spin .7s linear infinite' }} />Regenerating…</>
-                : '↻  Regenerate Suggestions'}
+                : <><RefreshCw size={14} />Regenerate Suggestions</>}
             </button>
           </div>
         </>

@@ -13,9 +13,9 @@
   --txt3: #555550;
   --bdr: rgba(255,255,255,0.08);
   --bdr2: rgba(255,255,255,0.14);
-  /* Display / poster: condensed brand & hero titles. UI: Outfit. */
+  /* Display / poster: condensed brand & hero titles. UI: Inter. */
   --fd: 'Bebas Neue', sans-serif;
-  --fb: 'Outfit', system-ui, -apple-system, sans-serif;
+  --fb: 'Inter', system-ui, -apple-system, sans-serif;
   --rad: 12px;
   --rad-lg: 18px;
   --rad-xl: 24px;
@@ -74,10 +74,15 @@ body {
   color: var(--txt);
   font-family: var(--fb);
   -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
   font-size: 14px;
   line-height: 1.5;
-  font-feature-settings: 'cv02', 'cv08';
+  font-feature-settings: 'cv02', 'cv08', 'ss01';
+  letter-spacing: -0.006em;
 }
+
+/* Tabular numerals for all stat / number contexts */
+.num { font-variant-numeric: tabular-nums; font-feature-settings: 'tnum'; }
 
 /* ── Typography ────────────────────────────────────────────────────────────── */
 

@@ -1,4 +1,5 @@
 import React, { useEffect, useState, useCallback, useRef } from 'react';
+import { Edit2, Trash2, Package } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import { getExpiryStatus } from '@preppal/utils';
@@ -23,14 +24,6 @@ const UNITS: Unit[] = [
 ];
 const CATEGORIES: Category[] = ['produce', 'dairy', 'protein', 'pantry', 'spice', 'other'];
 
-const CATEGORY_ICONS: Record<Category, string> = {
-  produce: '🥦',
-  dairy: '🥛',
-  protein: '🥩',
-  pantry: '🫙',
-  spice: '🧂',
-  other: '📦',
-};
 
 const CATEGORY_SVG: Record<Category, React.ReactNode> = {
   produce: (
@@ -180,7 +173,7 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
       <div className="modalPanel" style={{ width: 480, padding: 0, overflow: 'hidden' }} onClick={e => e.stopPropagation()}>
         <div style={{ padding: '20px 24px', borderBottom: '1px solid var(--bdr)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
           <div className="modalTitle">
-            {CATEGORY_ICONS[form.category]} {isEdit ? 'EDIT ITEM' : 'ADD PANTRY ITEM'}
+            {isEdit ? 'Edit Item' : 'Add Pantry Item'}
           </div>
           <button type="button" className="modalClose" onClick={onClose}>✕</button>
         </div>
@@ -209,7 +202,7 @@ function PantryModal({ item, preset, onClose, onSaved }: PantryModalProps) {
               <label style={labelStyle}>Category</label>
               <select style={selectStyle} value={form.category} onChange={set('category')}>
                 {CATEGORIES.map(c => (
-                  <option key={c} value={c}>{CATEGORY_ICONS[c]} {c.charAt(0).toUpperCase() + c.slice(1)}</option>
+                  <option key={c} value={c}>{c.charAt(0).toUpperCase() + c.slice(1)}</option>
                 ))}
               </select>
             </div>
@@ -422,19 +415,19 @@ function ItemCard({ item, onEdit, onDelete, onQtyChange }: {
               }}>
                 <button
                   onClick={() => { setMenuOpen(false); onEdit(); }}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, color: 'var(--txt)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--fb)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, color: 'var(--txt)', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--fb)' }}
                   onMouseOver={e => (e.currentTarget.style.background = 'rgba(255,255,255,0.06)')}
                   onMouseOut={e => (e.currentTarget.style.background = 'none')}
                 >
-                  ✏️ Edit
+                  <Edit2 size={13} /> Edit
                 </button>
                 <button
                   onClick={() => { setMenuOpen(false); onDelete(); }}
-                  style={{ display: 'block', width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--fb)' }}
+                  style={{ display: 'flex', alignItems: 'center', gap: 8, width: '100%', textAlign: 'left', padding: '10px 14px', fontSize: 13, color: '#ef4444', background: 'none', border: 'none', cursor: 'pointer', fontFamily: 'var(--fb)' }}
                   onMouseOver={e => (e.currentTarget.style.background = 'rgba(239,68,68,0.08)')}
                   onMouseOut={e => (e.currentTarget.style.background = 'none')}
                 >
-                  🗑 Delete
+                  <Trash2 size={13} /> Delete
                 </button>
               </div>
             </>
@@ -764,7 +757,9 @@ export function PantryPage() {
 
       {!loading && fetchError && (
         <div style={{ padding: '40px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 32, marginBottom: 12 }}>⚠️</div>
+          <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
+            <Package size={32} color="var(--txt3)" strokeWidth={1.2} />
+          </div>
           <div style={{ fontSize: 14, fontWeight: 600, color: 'var(--txt)', marginBottom: 6 }}>Failed to load pantry</div>
           <div style={{ fontSize: 13, color: 'var(--txt2)', marginBottom: 16 }}>{fetchError}</div>
           <button className="tbBtn" onClick={() => fetchItems()}>Retry</button>
@@ -773,8 +768,8 @@ export function PantryPage() {
 
       {!loading && !fetchError && filtered.length === 0 && (
         <div style={{ padding: '64px 0', textAlign: 'center' }}>
-          <div style={{ fontSize: 42, marginBottom: 14 }}>
-            {activeCategory !== 'all' ? CATEGORY_ICONS[activeCategory as Category] : '🫙'}
+          <div style={{ marginBottom: 16, display: 'flex', justifyContent: 'center' }}>
+            <Package size={38} color="var(--txt3)" strokeWidth={1.2} />
           </div>
           <div style={{ fontSize: 16, fontWeight: 700, color: 'var(--txt)', marginBottom: 8 }}>
             {search || activeCategory !== 'all' ? 'No items match your filter' : 'Your pantry is empty'}

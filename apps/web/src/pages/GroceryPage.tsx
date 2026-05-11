@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Plus, X, Check } from 'lucide-react';
+import { Plus, X, Check, ShoppingCart } from 'lucide-react';
 import { supabase } from '../lib/supabase';
 import { useAuthStore } from '../stores/authStore';
 import type { GroceryListItem } from '@preppal/types';
@@ -309,7 +309,9 @@ export function GroceryPage() {
       {/* Empty state */}
       {!hasAny && (
         <div style={{ ...GLASS, padding: '56px 32px', textAlign: 'center' }}>
-          <div style={{ fontSize: 36, marginBottom: 12 }}>🛒</div>
+          <div style={{ marginBottom: 14, display: 'flex', justifyContent: 'center' }}>
+          <ShoppingCart size={36} color="var(--txt3)" strokeWidth={1.2} />
+        </div>
           <p style={{ fontSize: 15, fontWeight: 700, color: 'var(--text-primary, #e4e4ef)', margin: '0 0 6px' }}>
             Your list is empty
           </p>

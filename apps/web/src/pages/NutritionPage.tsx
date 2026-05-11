@@ -133,9 +133,9 @@ function getIntelCards(
     cardA = { badgeType: 'info', icon: '◎', title: 'No meals logged', body: 'Log your first meal to start receiving AI-powered nutrition insights.' };
   } else if (protPct < 0.65) {
     const gap = Math.round(goals.protein - consumed.protein);
-    cardA = { badgeType: 'attention', icon: '⚠', title: 'Low protein today', body: `You are currently ${gap}g under your daily target. Consider a lean source for your next meal.` };
+    cardA = { badgeType: 'attention', icon: '!', title: 'Low protein today', body: `You are currently ${gap}g under your daily target. Consider a lean source for your next meal.` };
   } else if (calPct > 1.12) {
-    cardA = { badgeType: 'attention', icon: '⚠', title: 'Calorie goal exceeded', body: `You're ${Math.round(consumed.calories - calorieGoal)} kcal over your target. Plan a lighter next meal.` };
+    cardA = { badgeType: 'attention', icon: '!', title: 'Calorie goal exceeded', body: `You're ${Math.round(consumed.calories - calorieGoal)} kcal over your target. Plan a lighter next meal.` };
   } else if (protPct >= 0.90) {
     cardA = { badgeType: 'optimal', icon: '◎', title: 'Protein on target', body: `${Math.round(consumed.protein)}g logged — solid contribution. Your muscle synthesis is well-supported today.` };
   } else {
@@ -149,7 +149,7 @@ function getIntelCards(
   } else if (calPct >= 0.78 && calPct <= 1.02 && logs.length > 0) {
     cardB = { badgeType: 'optimal', icon: '◇', title: 'Calorie Balance Peak', body: 'Your calorie intake is aligned with your daily goal. Great energy management and pacing today.' };
   } else if (carbPct > 1.20) {
-    cardB = { badgeType: 'attention', icon: '⚡', title: 'High carb intake', body: `Carbs are at ${Math.round(carbPct * 100)}% of goal. Pair remaining meals with more protein to re-balance.` };
+    cardB = { badgeType: 'attention', icon: '↑', title: 'High carb intake', body: `Carbs are at ${Math.round(carbPct * 100)}% of goal. Pair remaining meals with more protein to re-balance.` };
   } else if (consumed.fat / (goals.fat || 1) >= 0.85) {
     cardB = { badgeType: 'optimal', icon: '◇', title: 'Fat Balance Maintained', body: 'Dietary fat is within a healthy range. Hormonal function and fat-soluble vitamin absorption are supported.' };
   } else {
@@ -196,7 +196,7 @@ const MACRO_BAR_COLOR: Record<MacroStatus, string> = {
 const MACRO_STATUS_ICON: Record<MacroStatus, string> = {
   low:      '↗',
   balanced: '✓',
-  high:     '⚠',
+  high:     '!',
 };
 const MACRO_STATUS_MSG = (name: string, status: MacroStatus, value: number, goal: number): string => {
   const gap = Math.abs(Math.round(goal - value));
@@ -327,7 +327,7 @@ function TodayView({ logs, calorieGoal, macroGoals }: {
             borderRadius: 10,
           }}>
             <div style={{ display: 'flex', alignItems: 'flex-start', gap: 10 }}>
-              <span style={{ fontSize: 14, flexShrink: 0, marginTop: 1 }}>✦</span>
+              <span style={{ width: 4, height: 4, borderRadius: '50%', background: 'var(--acc)', flexShrink: 0, marginTop: 8, display: 'inline-block' }} />
               <span style={{ fontSize: 12, color: 'var(--txt2)', lineHeight: 1.6 }}>{score.tagline}</span>
             </div>
           </div>
